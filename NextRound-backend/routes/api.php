@@ -32,9 +32,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     //TOURNAMENTS
     Route::post('/tournaments', [TournamentController::class, 'store']);
+    Route::get('/my-tournaments', [TournamentController::class, 'myTournaments']);
     Route::put('/tournaments/{tournament}', [TournamentController::class, 'update']);
     Route::delete('/tournaments/{tournament}', [TournamentController::class, 'destroy']);
     //REGISTRATION
+    Route::get('/my-registrations', [RegistrationController::class, 'myRegistrations']);
     Route::get('/tournaments/{tournament}/registrations', [RegistrationController::class, 'index']);
     Route::post('/tournaments/{tournament}/register', [RegistrationController::class, 'store']);
     Route::put('/registrations/{registration}', [RegistrationController::class, 'update']);
@@ -43,12 +45,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tournaments/{tournament}/matches/generate', [TournamentMatchController::class, 'generate']);
     //MATCHES
     Route::get('/matches', [TournamentMatchController::class, 'index']);
+    Route::get('/my-matches', [TournamentMatchController::class, 'myMatches']);
     Route::get('/matches/{match}', [TournamentMatchController::class, 'show']);
     Route::post('/matches', [TournamentMatchController::class, 'store']);
     Route::put('/matches/{match}', [TournamentMatchController::class, 'update']);
     Route::delete('/matches/{match}', [TournamentMatchController::class, 'destroy']);
     //MATCH-RESULTS
     Route::get('/results', [ResultController::class, 'index']);
+    Route::get('/my-results', [ResultController::class, 'myResults']);
     Route::get('/results/{result}', [ResultController::class, 'show']);
     Route::post('/results', [ResultController::class, 'store']);
     Route::put('/results/{result}', [ResultController::class, 'update']);

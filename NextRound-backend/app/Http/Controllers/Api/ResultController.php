@@ -184,4 +184,26 @@ class ResultController extends Controller
             'message' => 'Result deleted successfully.'
         ]);
     }
+
+    public function myResults(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $results = Result::with([
+            'match.tournament',
+            'match.firstPlayer',
+            'match.secondPlayer',
+            'winner',
+        ])
+            ->whereHas('match', function ($query) use ($userId) {
+                $query->where(function ($query) use ($userId) {
+                    $query->where('first_player_id', $userId)
+                        ->orWhere('second_player_id', $userId);
+                });
+            })
+            ->latest()
+            ->get();
+
+        return response()->json($results);
+    }
 }

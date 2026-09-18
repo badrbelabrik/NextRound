@@ -109,4 +109,17 @@ class TournamentController extends Controller
             'message' => 'Tournament deleted successfully.'
         ]);
     }
+
+    public function myTournaments(Request $request)
+    {
+        $tournaments = Tournament::with([
+            'game',
+            'user',
+        ])
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json($tournaments);
+    }
 }

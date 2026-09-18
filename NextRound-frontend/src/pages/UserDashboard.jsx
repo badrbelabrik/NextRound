@@ -1,138 +1,383 @@
+import { useEffect, useState } from 'react';
 import {
     CalendarDays,
     Gamepad2,
+    Settings,
     Trophy,
+    UserCircle,
     Users,
-    ArrowRight,
+    Plus,
+    ChevronRight,
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+
 
 function UserDashboard() {
     const { user } = useAuth();
+
+    const [activeTab, setActiveTab] = useState('activity');
+
+    const [upcomingMatches, setUpcomingMatches] = useState([]);
+    const [recentTournaments, setRecentTournaments] = useState([]);
+    const [latestResults, setLatestResults] = useState([]);
+    const [myTournaments, setMyTournaments] = useState([]);
+    const [registrations, setRegistrations] = useState([]);
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        const loadDashboardData = async () => {
+            try {
+                const tournamentsResponse =
+                    await api.get('/tournaments');
+
+                console.log(
+                    'TOURNAMENTS:',
+                    tournamentsResponse.data
+                );
+
+                setRecentTournaments(
+                    tournamentsResponse.data.tournaments.map(
+                        (tournament) => ({
+                            id: tournament.id,
+                            title: tournament.title,
+                            game:
+                                tournament.game?.name ??
+                                'Unknown game',
+                            status: formatStatus(
+                                tournament.status
+                            ),
+                        })
+                    )
+                );
+            } catch (error) {
+                console.error(
+                    'ERROR /tournaments:',
+                    error.response?.data || error.message
+                );
+            }
+
+            try {
+                const myTournamentsResponse =
+                    await api.get('/my-tournaments');
+
+                console.log(
+                    'MY TOURNAMENTS:',
+                    myTournamentsResponse.data
+                );
+
+                setMyTournaments(
+                    myTournamentsResponse.data.map(
+                        (tournament) => ({
+                            id: tournament.id,
+                            title: tournament.title,
+                            game:
+                                tournament.game?.name ??
+                                'Unknown game',
+                            players: `${
+                                tournament.approved_registrations_count ??
+                                tournament.registrations?.filter(
+                                    (registration) =>
+                                        registration.status ===
+                                        'approved'
+                                ).length ??
+                                0
+                            } / ${tournament.max_players}`,
+                            status: formatStatus(
+                                tournament.status
+                            ),
+                            startDate: formatDate(
+                                tournament.start_date
+                            ),
+                            endDate: formatDate(
+                                tournament.end_date
+                            ),
+                        })
+                    )
+                );
+            } catch (error) {
+                console.error(
+                    'ERROR /my-tournaments:',
+                    error.response?.data || error.message
+                );
+            }
+
+            try {
+                const registrationsResponse =
+                    await api.get('/my-registrations');
+
+                console.log(
+                    'MY REGISTRATIONS:',
+                    registrationsResponse.data
+                );
+
+                setRegistrations(
+                    registrationsResponse.data.map(
+                        (registration) => ({
+                            id: registration.id,
+                            title:
+                                registration.tournament?.title ??
+                                'Unknown tournament',
+                            game:
+                                registration.tournament?.game
+                                    ?.name ??
+                                'Unknown game',
+                            organizer:
+                                registration.tournament?.user
+                                    ?.name ??
+                                'Unknown organizer',
+                            status: formatStatus(
+                                registration.status
+                            ),
+                            startDate: formatDate(
+                                registration.tournament
+                                    ?.start_date
+                            ),
+                            endDate: formatDate(
+                                registration.tournament
+                                    ?.end_date
+                            ),
+                        })
+                    )
+                );
+            } catch (error) {
+                console.error(
+                    'ERROR /my-registrations:',
+                    error.response?.data ||
+                    error.message
+                );
+            }
+
+            try {
+                const matchesResponse =
+                    await api.get('/my-matches');
+
+                console.log(
+                    'MY MATCHES:',
+                    matchesResponse.data
+                );
+
+                setUpcomingMatches(
+                    matchesResponse.data
+                        .filter(
+                            (match) =>
+                                match.status ===
+                                'scheduled' ||
+                                match.status ===
+                                'in_progress'
+                        )
+                        .map((match) => {
+                            const opponent =
+                                match.first_player_id ===
+                                user.id
+                                    ? match.second_player?.name
+                                    : match.first_player?.name;
+
+                            return {
+                                id: match.id,
+                                tournament:
+                                    match.tournament?.title ??
+                                    'Unknown tournament',
+                                round: formatStatus(
+                                    match.round
+                                ),
+                                opponent:
+                                    opponent ??
+                                    'Unknown player',
+                                date: formatDate(
+                                    match.scheduled_at
+                                ),
+                                time: formatTime(
+                                    match.scheduled_at
+                                ),
+                            };
+                        })
+                );
+            } catch (error) {
+                console.error(
+                    'ERROR /my-matches:',
+                    error.response?.data ||
+                    error.message
+                );
+            }
+
+            try {
+                const resultsResponse =
+                    await api.get('/my-results');
+
+                console.log(
+                    'MY RESULTS:',
+                    resultsResponse.data
+                );
+
+                setLatestResults(
+                    resultsResponse.data.map((result) => {
+                        const match = result.match;
+
+                        const userIsPlayer1 =
+                            match.first_player_id ===
+                            user.id;
+
+                        const opponent =
+                            userIsPlayer1
+                                ? match.second_player?.name
+                                : match.first_player?.name;
+
+                        const userScore =
+                            userIsPlayer1
+                                ? result.score_player1
+                                : result.score_player2;
+
+                        const opponentScore =
+                            userIsPlayer1
+                                ? result.score_player2
+                                : result.score_player1;
+
+                        return {
+                            id: result.id,
+                            tournament:
+                                match.tournament?.title ??
+                                'Unknown tournament',
+                            opponent:
+                                opponent ??
+                                'Unknown player',
+                            score: `${userScore} - ${opponentScore}`,
+                            result:
+                                result.winner_id === user.id
+                                    ? 'Victory'
+                                    : 'Defeat',
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error(
+                    'ERROR /my-results:',
+                    error.response?.data ||
+                    error.message
+                );
+            }
+        };
+
+        loadDashboardData();
+    }, [user]);
+
 
     return (
         <div className="min-h-screen bg-[#0B0F19] text-white">
             <Navbar />
 
-            <main className="mx-auto max-w-7xl px-6 py-12">
+            <main className="mx-auto max-w-7xl px-6 py-8">
 
-                {/* Header */}
-                <div className="mb-10">
-                    <p className="text-sm font-semibold uppercase tracking-widest text-[#8B5CF6]">
-                        Dashboard
-                    </p>
+                {/* Profile Header */}
+                <section className="rounded-t-2xl border border-white/10 bg-[#171529]">
 
-                    <h1 className="mt-2 text-3xl font-black md:text-4xl">
-                        Welcome back{user?.name ? `, ${user.name}` : ''} 👋
-                    </h1>
+                    <div className="flex flex-col gap-6 px-8 py-8 sm:flex-row sm:items-center sm:justify-between">
 
-                    <p className="mt-2 text-gray-400">
-                        Here's what's happening with your tournaments.
-                    </p>
-                </div>
+                        <div className="flex items-center gap-5">
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#7C3AED]/10 ring-1 ring-[#7C3AED]/30">
+                                <UserCircle
+                                    size={42}
+                                    className="text-[#A78BFA]"
+                                />
+                            </div>
 
-                {/* Stats */}
-                <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                                <h1 className="text-3xl font-black">
+                                    {user?.name || 'Player'}
+                                </h1>
 
-                    <StatCard
-                        icon={Trophy}
-                        label="Tournaments"
-                        value="4"
-                    />
-
-                    <StatCard
-                        icon={Gamepad2}
-                        label="Matches"
-                        value="8"
-                    />
-
-                    <StatCard
-                        icon={Trophy}
-                        label="Victories"
-                        value="6"
-                    />
-
-                    <StatCard
-                        icon={Users}
-                        label="Points"
-                        value="540"
-                    />
-
-                </section>
-
-                {/* My tournaments */}
-                <section className="mt-12">
-
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-black">
-                                My Tournaments
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
-                                Tournaments you organize.
-                            </p>
+                                <p className="mt-1 text-sm text-gray-400">
+                                    NextRound player
+                                </p>
+                            </div>
                         </div>
 
-                        <button className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] transition hover:text-[#C4B5FD] sm:flex">
-                            View all
-                            <ArrowRight size={16} />
+                        <button
+                            type="button"
+                            className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 text-gray-400 transition hover:bg-white/5 hover:text-white"
+                        >
+                            <Settings size={20} />
                         </button>
+
                     </div>
 
-                    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111827]">
+                    {/* Tabs */}
+                    <div className="flex overflow-x-auto border-t border-white/10 px-8">
 
-                        <TournamentRow
-                            title="Summer Championship"
-                            game="Valorant"
-                            players="12 / 16"
-                            status="Open"
+                        <DashboardTab
+                            label="Activity"
+                            active={
+                                activeTab === 'activity'
+                            }
+                            onClick={() =>
+                                setActiveTab('activity')
+                            }
                         />
 
-                        <TournamentRow
-                            title="CS2 Pro League"
-                            game="Counter-Strike 2"
-                            players="8 / 16"
-                            status="In Progress"
+                        <DashboardTab
+                            label="Tournaments"
+                            active={
+                                activeTab === 'tournaments'
+                            }
+                            onClick={() =>
+                                setActiveTab('tournaments')
+                            }
+                        />
+
+                        <DashboardTab
+                            label="Registrations"
+                            active={
+                                activeTab ===
+                                'registrations'
+                            }
+                            onClick={() =>
+                                setActiveTab(
+                                    'registrations'
+                                )
+                            }
                         />
 
                     </div>
                 </section>
 
-                {/* Upcoming matches */}
-                <section className="mt-12">
+                {/* Tab Content */}
+                <section className="rounded-b-2xl border-x border-b border-white/10 bg-[#0F0C17] px-8 py-10">
 
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-black">
-                            Upcoming Matches
-                        </h2>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                            Your scheduled matches.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-5 md:grid-cols-2">
-
-                        <MatchCard
-                            round="Quarter Final"
-                            player1="Badr"
-                            player2="Ahmed"
-                            date="Sep 20"
-                            time="18:00"
+                    {activeTab === 'activity' && (
+                        <ActivityTab
+                            upcomingMatches={
+                                upcomingMatches
+                            }
+                            latestResults={
+                                latestResults
+                            }
+                            recentTournaments={
+                                recentTournaments
+                            }
                         />
+                    )}
 
-                        <MatchCard
-                            round="Semi Final"
-                            player1="Badr"
-                            player2="Karim"
-                            date="Sep 22"
-                            time="20:00"
+                    {activeTab === 'tournaments' && (
+                        <TournamentsTab
+                            myTournaments={
+                                myTournaments
+                            }
                         />
+                    )}
 
-                    </div>
+                    {activeTab === 'registrations' && (
+                        <RegistrationsTab
+                            registrations={
+                                registrations
+                            }
+                        />
+                    )}
+
                 </section>
 
             </main>
@@ -140,129 +385,540 @@ function UserDashboard() {
     );
 }
 
-function StatCard({ icon: Icon, label, value }) {
-    return (
-        <div className="rounded-xl border border-white/10 bg-[#111827] p-5 transition hover:border-[#7C3AED]/40">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm text-gray-500">
-                        {label}
-                    </p>
 
-                    <p className="mt-2 text-3xl font-black">
-                        {value}
-                    </p>
+/* =========================
+   ACTIVITY TAB
+========================= */
+
+function ActivityTab({
+                         upcomingMatches,
+                         latestResults,
+                         recentTournaments,
+                     }) {
+    return (
+        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr]">
+
+            {/* Left */}
+            <div>
+
+                <SectionTitle title="Upcoming matches" />
+
+                <div className="mt-6 space-y-4">
+                    {upcomingMatches.map((match) => (
+                        <MatchRow
+                            key={match.id}
+                            match={match}
+                        />
+                    ))}
                 </div>
 
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#7C3AED]/10">
-                    <Icon
-                        size={21}
-                        className="text-[#A78BFA]"
-                    />
+                <div className="mt-12">
+
+                    <SectionTitle title="Latest results" />
+
+                    <div className="mt-6 space-y-4">
+                        {latestResults.map((result) => (
+                            <ResultRow
+                                key={result.id}
+                                result={result}
+                            />
+                        ))}
+                    </div>
+
                 </div>
             </div>
+
+            {/* Right */}
+            <div>
+
+                <SectionTitle title="Recent tournaments" />
+
+                <div className="mt-6 space-y-4">
+                    {recentTournaments.map(
+                        (tournament) => (
+                            <RecentTournament
+                                key={tournament.id}
+                                tournament={tournament}
+                            />
+                        )
+                    )}
+                </div>
+
+            </div>
+
         </div>
     );
 }
 
-function TournamentRow({
-                           title,
-                           game,
-                           players,
-                           status,
-                       }) {
-    const statusStyles = {
-        Open: 'bg-green-500/10 text-green-400',
-        'In Progress': 'bg-blue-500/10 text-blue-400',
-    };
 
+/* =========================
+   TOURNAMENTS TAB
+========================= */
+
+function TournamentsTab({
+                            myTournaments,
+                        }) {
     return (
-        <div className="flex flex-col gap-4 border-b border-white/5 p-5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+        <div>
 
-            <div>
-                <p className="font-semibold text-white">
-                    {title}
-                </p>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
-                <p className="mt-1 text-sm text-gray-500">
-                    {game}
-                </p>
-            </div>
+                <SectionTitle
+                    title="My tournaments"
+                    subtitle="Tournaments you organize."
+                />
 
-            <div className="flex items-center gap-6">
-
-                <div className="text-sm text-gray-400">
-                    <Users size={15} className="mr-1 inline" />
-                    {players}
-                </div>
-
-                <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}
+                <button
+                    type="button"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-[#7C3AED] px-5 py-3 text-sm font-semibold transition hover:bg-[#6D28D9]"
                 >
-                    {status}
-                </span>
-
-                <button className="text-gray-500 transition hover:text-white">
-                    <ArrowRight size={18} />
+                    <Plus size={17} />
+                    Create Tournament
                 </button>
 
             </div>
+
+            <div className="mt-6 space-y-4">
+
+                {myTournaments.map((tournament) => (
+                    <TournamentCard
+                        key={tournament.id}
+                        tournament={tournament}
+                    />
+                ))}
+
+            </div>
         </div>
     );
 }
 
-function MatchCard({
-                       round,
-                       player1,
-                       player2,
-                       date,
-                       time,
-                   }) {
+
+/* =========================
+   REGISTRATIONS TAB
+========================= */
+
+function RegistrationsTab({
+                              registrations,
+                          }) {
+    return (
+        <div>
+
+            <SectionTitle
+                title="My registrations"
+                subtitle="Tournaments you joined."
+            />
+
+            <div className="mt-6 space-y-4">
+
+                {registrations.map((registration) => (
+                    <RegistrationCard
+                        key={registration.id}
+                        registration={registration}
+                    />
+                ))}
+
+            </div>
+
+        </div>
+    );
+}
+
+
+/* =========================
+   TAB
+========================= */
+
+function DashboardTab({
+                          label,
+                          active,
+                          onClick,
+                      }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`relative whitespace-nowrap px-8 py-5 text-sm font-medium transition ${
+                active
+                    ? 'text-[#A78BFA]'
+                    : 'text-gray-400 hover:text-white'
+            }`}
+        >
+            {label}
+
+            {active && (
+                <span className="absolute bottom-0 left-0 h-0.5 w-full bg-[#7C3AED]" />
+            )}
+        </button>
+    );
+}
+
+
+/* =========================
+   SECTION TITLE
+========================= */
+
+function SectionTitle({
+                          title,
+                          subtitle,
+                      }) {
+    return (
+        <div>
+            <h2 className="text-2xl font-black">
+                {title}
+            </h2>
+
+            {subtitle && (
+                <p className="mt-1 text-sm text-gray-500">
+                    {subtitle}
+                </p>
+            )}
+        </div>
+    );
+}
+
+
+/* =========================
+   MATCH
+========================= */
+
+function MatchRow({ match }) {
     return (
         <div className="rounded-xl border border-white/10 bg-[#111827] p-5 transition hover:border-[#7C3AED]/40">
 
-            <div className="flex items-center justify-between">
-
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#8B5CF6]">
-                    {round}
-                </span>
-
-                <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-400">
-                    Scheduled
-                </span>
-
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
-                    <p className="font-bold">
-                        {player1}
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#8B5CF6]">
+                        {match.round}
                     </p>
 
-                    <p className="mt-2 text-gray-500">
-                        vs
-                    </p>
+                    <h3 className="mt-2 font-bold">
+                        You vs {match.opponent}
+                    </h3>
 
-                    <p className="mt-2 font-bold">
-                        {player2}
+                    <p className="mt-1 text-sm text-gray-500">
+                        {match.tournament}
                     </p>
                 </div>
 
-                <div className="text-right text-sm text-gray-400">
-                    <div className="flex items-center gap-2">
+                <div className="text-sm text-gray-400 sm:text-right">
+
+                    <div className="flex items-center gap-2 sm:justify-end">
                         <CalendarDays size={15} />
-                        {date}
+                        {match.date}
                     </div>
 
-                    <p className="mt-2">
-                        {time}
+                    <p className="mt-1 font-semibold text-white">
+                        {match.time}
                     </p>
+
                 </div>
 
             </div>
         </div>
     );
 }
+
+
+/* =========================
+   RESULT
+========================= */
+
+function ResultRow({ result }) {
+    const isVictory =
+        result.result === 'Victory';
+
+    return (
+        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#111827] p-5">
+
+            <div>
+                <p className="font-semibold">
+                    {result.tournament}
+                </p>
+
+                <p className="mt-1 text-sm text-gray-500">
+                    vs {result.opponent}
+                </p>
+            </div>
+
+            <div className="text-right">
+
+                <p className="font-bold">
+                    {result.score}
+                </p>
+
+                <p
+                    className={`mt-1 text-sm font-semibold ${
+                        isVictory
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                    }`}
+                >
+                    {result.result}
+                </p>
+
+            </div>
+        </div>
+    );
+}
+
+
+/* =========================
+   RECENT TOURNAMENT
+========================= */
+
+function RecentTournament({
+                              tournament,
+                          }) {
+    return (
+        <div className="rounded-xl border border-white/10 bg-[#111827] p-5">
+
+            <div className="flex items-start gap-4">
+
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
+                    <Gamepad2
+                        size={19}
+                        className="text-[#A78BFA]"
+                    />
+                </div>
+
+                <div className="min-w-0">
+
+                    <h3 className="truncate font-semibold">
+                        {tournament.title}
+                    </h3>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                        {tournament.game}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <span
+                className={`mt-4 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                    tournament.status === 'Open'
+                        ? 'bg-green-500/10 text-green-400'
+                        : 'bg-blue-500/10 text-blue-400'
+                }`}
+            >
+                {tournament.status}
+            </span>
+
+        </div>
+    );
+}
+
+
+/* =========================
+   TOURNAMENT CARD
+========================= */
+
+function TournamentCard({
+                            tournament,
+                        }) {
+    return (
+        <div className="rounded-xl border border-white/10 bg-[#111827] p-5">
+
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                <div className="flex items-center gap-4">
+
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
+                        <Trophy
+                            size={20}
+                            className="text-[#A78BFA]"
+                        />
+                    </div>
+
+                    <div>
+                        <h3 className="font-semibold">
+                            {tournament.title}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            {tournament.game}
+                        </p>
+                    </div>
+
+                </div>
+
+                <div className="flex flex-wrap items-center gap-5 text-sm">
+
+                    <span className="flex items-center gap-2 text-gray-400">
+                        <Users size={15} />
+                        {tournament.players}
+                    </span>
+
+                    <span className="flex items-center gap-2 text-gray-400">
+                        <CalendarDays size={15} />
+                        {tournament.startDate} –{' '}
+                        {tournament.endDate}
+                    </span>
+
+                    <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            tournament.status === 'Open'
+                                ? 'bg-green-500/10 text-green-400'
+                                : 'bg-blue-500/10 text-blue-400'
+                        }`}
+                    >
+                        {tournament.status}
+                    </span>
+
+                    <button
+                        type="button"
+                        className="flex items-center gap-1 text-sm font-semibold text-white transition hover:text-[#A78BFA]"
+                    >
+                        Manage
+                        <ChevronRight size={16} />
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+
+/* =========================
+   REGISTRATION CARD
+========================= */
+
+function RegistrationCard({
+                              registration,
+                          }) {
+    const statusStyles = {
+        Approved:
+            'bg-green-500/10 text-green-400',
+        Pending:
+            'bg-yellow-500/10 text-yellow-400',
+        Rejected:
+            'bg-red-500/10 text-red-400',
+    };
+
+    return (
+        <div className="rounded-xl border border-white/10 bg-[#111827] p-5">
+
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                <div className="flex items-start gap-4">
+
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#7C3AED]/10">
+                        <Gamepad2
+                            size={20}
+                            className="text-[#A78BFA]"
+                        />
+                    </div>
+
+                    <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-[#8B5CF6]">
+                            {registration.game}
+                        </p>
+
+                        <h3 className="mt-2 font-bold">
+                            {registration.title}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Organized by{' '}
+                            {registration.organizer}
+                        </p>
+                    </div>
+
+                </div>
+
+                <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                        statusStyles[
+                            registration.status
+                            ]
+                    }`}
+                >
+                    {registration.status}
+                </span>
+
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-gray-500">
+
+                <div className="flex items-center gap-2">
+                    <CalendarDays size={15} />
+                    {registration.startDate} –{' '}
+                    {registration.endDate}
+                </div>
+
+            </div>
+
+            <div className="mt-5 flex gap-3">
+
+                <button
+                    type="button"
+                    className="flex-1 rounded-lg border border-white/10 py-2.5 text-sm font-medium transition hover:bg-white/5"
+                >
+                    View tournament
+                </button>
+
+                {registration.status === 'Approved' && (
+                    <button
+                        type="button"
+                        className="rounded-lg border border-red-500/20 px-4 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/10"
+                    >
+                        Cancel
+                    </button>
+                )}
+
+            </div>
+
+        </div>
+    );
+}
+
+
+/* =========================
+   FORMAT HELPERS
+========================= */
+
+function formatDate(date) {
+    if (!date) {
+        return '';
+    }
+
+    const parsedDate = new Date(date);
+
+    return parsedDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: '2-digit',
+    });
+}
+
+function formatTime(date) {
+    if (!date) {
+        return '';
+    }
+
+    const parsedDate = new Date(date);
+
+    return parsedDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+function formatStatus(status) {
+    if (!status) {
+        return '';
+    }
+
+    return status
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (letter) =>
+            letter.toUpperCase()
+        );
+}
+
 
 export default UserDashboard;

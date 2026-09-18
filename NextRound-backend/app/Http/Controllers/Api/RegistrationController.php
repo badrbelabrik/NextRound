@@ -114,4 +114,17 @@ class RegistrationController extends Controller
             ], 404);
         }
     }
+
+    public function myRegistrations(Request $request)
+    {
+        $registrations = Registration::with([
+            'tournament.game',
+            'tournament.user',
+        ])
+            ->where('user_id', $request->user()->id)
+            ->latest('registration_date')
+            ->get();
+
+        return response()->json($registrations);
+    }
 }

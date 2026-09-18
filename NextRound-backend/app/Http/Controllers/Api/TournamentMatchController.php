@@ -133,4 +133,24 @@ class TournamentMatchController extends Controller
             ], 422);
         }
     }
+
+    public function myMatches(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $matches = TournamentMatch::with([
+            'tournament',
+            'firstPlayer',
+            'secondPlayer',
+            'result',
+        ])
+            ->where(function ($query) use ($userId) {
+                $query->where('first_player_id', $userId)
+                    ->orWhere('second_player_id', $userId);
+            })
+            ->latest('scheduled_at')
+            ->get();
+
+        return response()->json($matches);
+    }
 }
