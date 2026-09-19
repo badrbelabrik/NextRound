@@ -4,7 +4,6 @@ function PlayerCard({
     position,
     name,
     points,
-    avatar,
 }) {
     return (
         <div className="relative rounded-xl border border-white/10 bg-[#111827] p-5 transition hover:border-[#7C3AED]/40">
@@ -15,11 +14,6 @@ function PlayerCard({
 
             <div className="flex flex-col items-center">
 
-                <img
-                    src={avatar}
-                    alt={name}
-                    className="mt-4 h-16 w-16 rounded-full border-2 border-[#7C3AED] object-cover"
-                />
 
                 <h3 className="mt-4 font-bold text-white">
                     {name}

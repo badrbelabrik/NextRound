@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
     ArrowRight,
     Gamepad2,
@@ -9,88 +10,114 @@ import {
 import Navbar from '../components/Navbar';
 import TournamentCard from '../components/TournamentCard';
 import PlayerCard from '../components/PlayerCard';
+import api from '../services/api';
 
-const tournaments = [
-    {
-        image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e',
-        game: 'Valorant',
-        title: 'Summer Championship',
-        organizer: 'Badr',
-        players: 12,
-        maxPlayers: 16,
-        startDate: 'Sep 20',
-        endDate: 'Sep 22',
-        status: 'Open',
-    },
-    {
-        image: 'https://images.unsplash.com/photo-1593305841991-05c297ba4575',
-        game: 'Counter-Strike 2',
-        title: 'CS2 Pro League',
-        organizer: 'Ahmed',
-        players: 8,
-        maxPlayers: 16,
-        startDate: 'Sep 15',
-        endDate: 'Sep 21',
-        status: 'In Progress',
-    },
-    {
-        image: 'https://images.unsplash.com/photo-1547394765-185e1e68f34e',
-        game: 'FC 24',
-        title: 'FC 24 Challenge',
-        organizer: 'Karim',
-        players: 16,
-        maxPlayers: 16,
-        startDate: 'Sep 10',
-        endDate: 'Sep 12',
-        status: 'Closed',
-    },
-    {
-        image: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba',
-        game: 'League of Legends',
-        title: "Summoner's Cup",
-        organizer: 'Sara',
-        players: 10,
-        maxPlayers: 32,
-        startDate: 'Sep 25',
-        endDate: 'Sep 29',
-        status: 'Open',
-    },
-];
-
-const players = [
-    {
-        position: 1,
-        name: 'Badr',
-        points: 1240,
-        avatar: 'https://i.pravatar.cc/150?img=11',
-    },
-    {
-        position: 2,
-        name: 'Ahmed',
-        points: 1180,
-        avatar: 'https://i.pravatar.cc/150?img=12',
-    },
-    {
-        position: 3,
-        name: 'Karim',
-        points: 1090,
-        avatar: 'https://i.pravatar.cc/150?img=13',
-    },
-    {
-        position: 4,
-        name: 'Yassine',
-        points: 980,
-        avatar: 'https://i.pravatar.cc/150?img=14',
-    },
-    {
-        position: 5,
-        name: 'Sara',
-        points: 950,
-        avatar: 'https://i.pravatar.cc/150?img=32',
-    },
-];
 
 function Home() {
+    const [tournaments, setTournaments] = useState([]);
+    const [players, setPlayers] = useState([]);
+
+    useEffect(() => {
+        const loadHomeData = async () => {
+            try {
+                const [
+                    tournamentsResponse,
+                    playersResponse,
+                ] = await Promise.all([
+                    api.get('/tournaments'),
+                    api.get('/top-players'),
+                ]);
+
+                /*
+                ========================================
+                TOURNAMENTS
+                ========================================
+                */
+
+                const tournamentsData =
+                    tournamentsResponse.data
+                        .tournaments;
+
+                setTournaments(
+                    tournamentsData
+                        .slice(0, 4)
+                        .map((tournament) => ({
+                            image:
+                                tournament.game?.image ??
+                                null,
+
+                            game:
+                                tournament.game?.name ??
+                                'Unknown game',
+
+                            title:
+                            tournament.title,
+
+                            organizer:
+                                tournament.user?.name ??
+                                'Unknown organizer',
+
+                            players:
+                                tournament.approved_registrations_count ??
+                                0,
+
+                            maxPlayers:
+                            tournament.max_players,
+
+                            startDate:
+                                formatDate(
+                                    tournament.start_date
+                                ),
+
+                            endDate:
+                                formatDate(
+                                    tournament.end_date
+                                ),
+
+                            status:
+                                formatStatus(
+                                    tournament.status
+                                ),
+                        }))
+                );
+
+
+                /*
+                ========================================
+                TOP PLAYERS
+                ========================================
+                */
+
+                setPlayers(
+                    playersResponse.data
+                        .slice(0, 5)
+                        .map((ranking, index) => ({
+                            position:
+                                ranking.position ??
+                                index + 1,
+
+                            name:
+                                ranking.player?.name ??
+                                'Unknown player',
+
+                            points:
+                            ranking.points,
+                        }))
+                );
+
+            } catch (error) {
+                console.error(
+                    'Error loading homepage data:',
+                    error.response?.data ||
+                    error.message
+                );
+            }
+        };
+
+        loadHomeData();
+    }, []);
+
+
     return (
         <div className="min-h-screen bg-[#0B0F19] text-white">
 
@@ -139,9 +166,15 @@ function Home() {
 
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <Users className="text-[#8B5CF6]" size={20} />
-                                    <span className="text-2xl font-bold">1,200+</span>
+                                    <Users
+                                        className="text-[#8B5CF6]"
+                                        size={20}
+                                    />
+                                    <span className="text-2xl font-bold">
+                                        {players.length}
+                                    </span>
                                 </div>
+
                                 <p className="mt-1 text-sm text-gray-500">
                                     Players
                                 </p>
@@ -149,9 +182,16 @@ function Home() {
 
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <Gamepad2 className="text-[#8B5CF6]" size={20} />
-                                    <span className="text-2xl font-bold">50+</span>
+                                    <Gamepad2
+                                        className="text-[#8B5CF6]"
+                                        size={20}
+                                    />
+
+                                    <span className="text-2xl font-bold">
+                                        {tournaments.length}
+                                    </span>
                                 </div>
+
                                 <p className="mt-1 text-sm text-gray-500">
                                     Tournaments
                                 </p>
@@ -159,9 +199,16 @@ function Home() {
 
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <Users className="text-[#8B5CF6]" size={20} />
-                                    <span className="text-2xl font-bold">15+</span>
+                                    <Users
+                                        className="text-[#8B5CF6]"
+                                        size={20}
+                                    />
+
+                                    <span className="text-2xl font-bold">
+                                        —
+                                    </span>
                                 </div>
+
                                 <p className="mt-1 text-sm text-gray-500">
                                     Games
                                 </p>
@@ -182,21 +229,26 @@ function Home() {
                                     className="text-[#8B5CF6]"
                                     size={28}
                                 />
+
                                 <span className="text-lg font-bold">
                                     NextRound
                                 </span>
                             </div>
 
                             <div className="absolute bottom-12 left-8">
+
                                 <p className="text-sm uppercase tracking-widest text-gray-500">
                                     Competitive Gaming
                                 </p>
+
                                 <p className="mt-2 text-4xl font-black">
                                     COMPETE.
                                 </p>
+
                                 <p className="text-4xl font-black text-[#8B5CF6]">
                                     DOMINATE.
                                 </p>
+
                             </div>
 
                         </div>
@@ -233,12 +285,14 @@ function Home() {
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+
                         {tournaments.map((tournament) => (
                             <TournamentCard
-                                key={tournament.title}
+                                key={tournament.id}
                                 {...tournament}
                             />
                         ))}
+
                     </div>
                 </div>
             </section>
@@ -271,12 +325,14 @@ function Home() {
                     </div>
 
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+
                         {players.map((player) => (
                             <PlayerCard
                                 key={player.position}
                                 {...player}
                             />
                         ))}
+
                     </div>
 
                 </div>
@@ -322,6 +378,7 @@ function Home() {
                                     size={24}
                                     className="fill-[#7C3AED] text-[#7C3AED]"
                                 />
+
                                 <span className="font-black">
                                     NextRound
                                 </span>
@@ -385,11 +442,44 @@ function Home() {
                     <div className="mt-12 border-t border-white/10 pt-6 text-sm text-gray-600">
                         © 2026 NextRound. All rights reserved.
                     </div>
+
                 </div>
             </footer>
 
         </div>
     );
 }
+
+
+/* =========================
+   HELPERS
+========================= */
+
+function formatDate(date) {
+    if (!date) {
+        return '';
+    }
+
+    return new Date(date).toLocaleDateString(
+        'en-US',
+        {
+            month: 'short',
+            day: '2-digit',
+        }
+    );
+}
+
+function formatStatus(status) {
+    if (!status) {
+        return '';
+    }
+
+    return status
+        .replaceAll('_', ' ')
+        .replace(/\b\w/g, (letter) =>
+            letter.toUpperCase()
+        );
+}
+
 
 export default Home;

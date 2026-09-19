@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import UserDashboard from './pages/UserDashboard'
+import Tournaments from "./pages/Tournaments.jsx";
+import TournamentDetails from "./pages/TournamentDetails.jsx";
 function App() {
   return (
         <BrowserRouter>
@@ -14,6 +16,8 @@ function App() {
                 <Route path="/register" element={<Register/>} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/userdashboard" element={<UserDashboard/>} />
+                <Route path="/tournaments" element={<Tournaments />} />
+                <Route path="/tournaments/:id" element={<TournamentDetails />}/>
             </Routes>
         </BrowserRouter>
   );

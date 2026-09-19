@@ -25,6 +25,7 @@ function UserDashboard() {
     const [latestResults, setLatestResults] = useState([]);
     const [myTournaments, setMyTournaments] = useState([]);
     const [registrations, setRegistrations] = useState([]);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
         if (!user) {
@@ -36,10 +37,6 @@ function UserDashboard() {
                 const tournamentsResponse =
                     await api.get('/tournaments');
 
-                console.log(
-                    'TOURNAMENTS:',
-                    tournamentsResponse.data
-                );
 
                 setRecentTournaments(
                     tournamentsResponse.data.tournaments.map(
@@ -65,11 +62,6 @@ function UserDashboard() {
             try {
                 const myTournamentsResponse =
                     await api.get('/my-tournaments');
-
-                console.log(
-                    'MY TOURNAMENTS:',
-                    myTournamentsResponse.data
-                );
 
                 setMyTournaments(
                     myTournamentsResponse.data.map(
@@ -111,10 +103,6 @@ function UserDashboard() {
                 const registrationsResponse =
                     await api.get('/my-registrations');
 
-                console.log(
-                    'MY REGISTRATIONS:',
-                    registrationsResponse.data
-                );
 
                 setRegistrations(
                     registrationsResponse.data.map(
@@ -157,10 +145,6 @@ function UserDashboard() {
                 const matchesResponse =
                     await api.get('/my-matches');
 
-                console.log(
-                    'MY MATCHES:',
-                    matchesResponse.data
-                );
 
                 setUpcomingMatches(
                     matchesResponse.data
@@ -210,10 +194,6 @@ function UserDashboard() {
                 const resultsResponse =
                     await api.get('/my-results');
 
-                console.log(
-                    'MY RESULTS:',
-                    resultsResponse.data
-                );
 
                 setLatestResults(
                     resultsResponse.data.map((result) => {
@@ -288,7 +268,7 @@ function UserDashboard() {
 
                             <div>
                                 <h1 className="text-3xl font-black">
-                                    {user?.name || 'Player'}
+                                    {user?.user.name || 'Player'}
                                 </h1>
 
                                 <p className="mt-1 text-sm text-gray-400">
@@ -364,8 +344,9 @@ function UserDashboard() {
 
                     {activeTab === 'tournaments' && (
                         <TournamentsTab
-                            myTournaments={
-                                myTournaments
+                            myTournaments={myTournaments}
+                            onCreateTournament={() =>
+                                setShowCreateModal(true)
                             }
                         />
                     )}
@@ -381,6 +362,16 @@ function UserDashboard() {
                 </section>
 
             </main>
+            {showCreateModal && (
+                <CreateTournamentModal
+                    onClose={() =>
+                        setShowCreateModal(false)
+                    }
+                    onCreated={() => {
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -457,6 +448,7 @@ function ActivityTab({
 
 function TournamentsTab({
                             myTournaments,
+                            onCreateTournament,
                         }) {
     return (
         <div>
@@ -470,6 +462,7 @@ function TournamentsTab({
 
                 <button
                     type="button"
+                    onClick={onCreateTournament}
                     className="flex items-center justify-center gap-2 rounded-lg bg-[#7C3AED] px-5 py-3 text-sm font-semibold transition hover:bg-[#6D28D9]"
                 >
                     <Plus size={17} />
@@ -492,6 +485,506 @@ function TournamentsTab({
     );
 }
 
+function CreateTournamentModal({
+                                   onClose,
+                                   onCreated,
+                               }) {
+    const [games, setGames] = useState([]);
+
+    const [formData, setFormData] = useState({
+        title: '',
+        game_id: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        max_players: '',
+        status: 'draft',
+        prize: '',
+    });
+
+    const [loadingGames, setLoadingGames] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [validationErrors, setValidationErrors] =
+        useState({});
+
+    useEffect(() => {
+        const loadGames = async () => {
+            try {
+                const response = await api.get('/games');
+
+                setGames(response.data.games);
+            } catch (error) {
+                console.error(
+                    'ERROR /games:',
+                    error.response?.data ||
+                    error.message
+                );
+
+                setError(
+                    'Unable to load games.'
+                );
+            } finally {
+                setLoadingGames(false);
+            }
+        };
+
+        loadGames();
+    }, []);
+
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+
+        setFormData((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+
+        setValidationErrors((previous) => ({
+            ...previous,
+            [name]: undefined,
+        }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        setSubmitting(true);
+        setError('');
+        setValidationErrors({});
+
+        try {
+            await api.post('/tournaments', {
+                title: formData.title,
+                game_id: formData.game_id,
+                description: formData.description,
+                start_date: formData.start_date,
+                end_date:
+                    formData.end_date || null,
+                max_players: Number(
+                    formData.max_players
+                ),
+                status: formData.status,
+                prize: formData.prize || null,
+            });
+
+            onCreated();
+            onClose();
+
+        } catch (error) {
+            console.error(
+                'ERROR /tournaments POST:',
+                error.response?.data ||
+                error.message
+            );
+
+            if (error.response?.status === 422) {
+                setValidationErrors(
+                    error.response.data.errors || {}
+                );
+            } else {
+                setError(
+                    error.response?.data?.message ||
+                    'Unable to create tournament.'
+                );
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#171529] shadow-2xl">
+
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+                    <div>
+                        <h2 className="text-xl font-black">
+                            Create Tournament
+                        </h2>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                            Create a new tournament on NextRound.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                {/* Form */}
+                <form
+                    onSubmit={handleSubmit}
+                    className="px-6 py-6"
+                >
+
+                    {error && (
+                        <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+                            {error}
+                        </div>
+                    )}
+
+                    <div className="space-y-5">
+
+                        {/* Title */}
+                        <div>
+                            <label
+                                htmlFor="title"
+                                className="mb-2 block text-sm font-medium text-gray-300"
+                            >
+                                Tournament title
+                            </label>
+
+                            <input
+                                id="title"
+                                name="title"
+                                type="text"
+                                value={formData.title}
+                                onChange={handleChange}
+                                placeholder="Summer Championship"
+                                className="w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-[#7C3AED]"
+                            />
+
+                            {validationErrors.title && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    {validationErrors.title[0]}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Game */}
+                        <div>
+                            <label
+                                htmlFor="game_id"
+                                className="mb-2 block text-sm font-medium text-gray-300"
+                            >
+                                Game
+                            </label>
+
+                            <div className="relative">
+                                <Gamepad2
+                                    size={17}
+                                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                                />
+
+                                <select
+                                    id="game_id"
+                                    name="game_id"
+                                    value={
+                                        formData.game_id
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    disabled={
+                                        loadingGames
+                                    }
+                                    className="w-full appearance-none rounded-lg border border-white/10 bg-[#111827] px-11 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
+                                >
+                                    <option value="">
+                                        {loadingGames
+                                            ? 'Loading games...'
+                                            : 'Select a game'}
+                                    </option>
+
+                                    {games.map(
+                                        (game) => (
+                                            <option
+                                                key={
+                                                    game.id
+                                                }
+                                                value={
+                                                    game.id
+                                                }
+                                            >
+                                                {game.name}
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+                            </div>
+
+                            {validationErrors.game_id && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    {
+                                        validationErrors
+                                            .game_id[0]
+                                    }
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                            <label
+                                htmlFor="description"
+                                className="mb-2 block text-sm font-medium text-gray-300"
+                            >
+                                Description
+                            </label>
+
+                            <textarea
+                                id="description"
+                                name="description"
+                                value={
+                                    formData.description
+                                }
+                                onChange={
+                                    handleChange
+                                }
+                                rows="4"
+                                placeholder="Tournament description"
+                                className="w-full resize-none rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-[#7C3AED]"
+                            />
+
+                            {validationErrors.description && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    {
+                                        validationErrors
+                                            .description[0]
+                                    }
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Dates */}
+                        <div className="grid gap-5 sm:grid-cols-2">
+
+                            <div>
+                                <label
+                                    htmlFor="start_date"
+                                    className="mb-2 block text-sm font-medium text-gray-300"
+                                >
+                                    Start date
+                                </label>
+
+                                <div className="relative">
+                                    <CalendarDays
+                                        size={17}
+                                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                                    />
+
+                                    <input
+                                        id="start_date"
+                                        name="start_date"
+                                        type="date"
+                                        value={
+                                            formData.start_date
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        className="w-full rounded-lg border border-white/10 bg-[#111827] px-11 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
+                                    />
+                                </div>
+
+                                {validationErrors.start_date && (
+                                    <p className="mt-1 text-sm text-red-400">
+                                        {
+                                            validationErrors
+                                                .start_date[0]
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="end_date"
+                                    className="mb-2 block text-sm font-medium text-gray-300"
+                                >
+                                    End date
+                                </label>
+
+                                <div className="relative">
+                                    <CalendarDays
+                                        size={17}
+                                        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                                    />
+
+                                    <input
+                                        id="end_date"
+                                        name="end_date"
+                                        type="date"
+                                        value={
+                                            formData.end_date
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        className="w-full rounded-lg border border-white/10 bg-[#111827] px-11 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
+                                    />
+                                </div>
+
+                                {validationErrors.end_date && (
+                                    <p className="mt-1 text-sm text-red-400">
+                                        {
+                                            validationErrors
+                                                .end_date[0]
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                        </div>
+
+                        {/* Max players + Status */}
+                        <div className="grid gap-5 sm:grid-cols-2">
+
+                            <div>
+                                <label
+                                    htmlFor="max_players"
+                                    className="mb-2 block text-sm font-medium text-gray-300"
+                                >
+                                    Maximum players
+                                </label>
+
+                                <input
+                                    id="max_players"
+                                    name="max_players"
+                                    type="number"
+                                    min="1"
+                                    value={
+                                        formData.max_players
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    placeholder="16"
+                                    className="w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-[#7C3AED]"
+                                />
+
+                                {validationErrors.max_players && (
+                                    <p className="mt-1 text-sm text-red-400">
+                                        {
+                                            validationErrors
+                                                .max_players[0]
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="status"
+                                    className="mb-2 block text-sm font-medium text-gray-300"
+                                >
+                                    Status
+                                </label>
+
+                                <select
+                                    id="status"
+                                    name="status"
+                                    value={
+                                        formData.status
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    className="w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
+                                >
+                                    <option value="draft">
+                                        Draft
+                                    </option>
+
+                                    <option value="open">
+                                        Open
+                                    </option>
+                                </select>
+
+                                {validationErrors.status && (
+                                    <p className="mt-1 text-sm text-red-400">
+                                        {
+                                            validationErrors
+                                                .status[0]
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                        </div>
+
+                        {/* Prize */}
+                        <div>
+                            <label
+                                htmlFor="prize"
+                                className="mb-2 block text-sm font-medium text-gray-300"
+                            >
+                                Prize
+                            </label>
+
+                            <div className="relative">
+                                <Trophy
+                                    size={17}
+                                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"
+                                />
+
+                                <input
+                                    id="prize"
+                                    name="prize"
+                                    type="text"
+                                    value={formData.prize}
+                                    onChange={
+                                        handleChange
+                                    }
+                                    placeholder="1000 MAD"
+                                    className="w-full rounded-lg border border-white/10 bg-[#111827] px-11 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-[#7C3AED]"
+                                />
+                            </div>
+
+                            {validationErrors.prize && (
+                                <p className="mt-1 text-sm text-red-400">
+                                    {
+                                        validationErrors
+                                            .prize[0]
+                                    }
+                                </p>
+                            )}
+                        </div>
+
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-6 flex justify-end gap-3 border-t border-white/10 pt-5">
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg border border-white/10 px-5 py-2.5 text-sm font-medium text-gray-300 transition hover:bg-white/5 hover:text-white"
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {submitting
+                                ? 'Creating...'
+                                : 'Create Tournament'}
+                        </button>
+
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    );
+}
 
 /* =========================
    REGISTRATIONS TAB

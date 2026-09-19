@@ -37,42 +37,19 @@ class ResultController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'match_id' => 'required|exists:matches,id|unique:results,match_id',
+            'match_id' => 'required|exists:matches,id',
             'score_player1' => 'required|integer|min:0',
             'score_player2' => 'required|integer|min:0',
             'winner_id' => 'required|exists:users,id',
         ]);
 
-        $match = TournamentMatch::findOrFail($validated['match_id']);
-        Gate::authorize('create', $match);
-        // The winner must be one of the two players.
-        if (
-            $validated['winner_id'] != $match->first_player_id &&
-            $validated['winner_id'] != $match->second_player_id
-        ) {
-            return response()->json([
-                'message' => 'The winner must be one of the players in the match.'
-            ], 422);
-        }
+        $match = TournamentMatch::with('tournament')
+            ->findOrFail($validated['match_id']);
 
-        // The score must determine the winner.
-        if (
-            $validated['score_player1'] === $validated['score_player2']
-        ) {
-            return response()->json([
-                'message' => 'A match cannot end in a draw.'
-            ], 422);
-        }
-
-        $expectedWinnerId = $validated['score_player1'] > $validated['score_player2']
-            ? $match->first_player_id
-            : $match->second_player_id;
-
-        if ((int) $validated['winner_id'] !== (int) $expectedWinnerId) {
-            return response()->json([
-                'message' => 'The winner does not match the submitted score.'
-            ], 422);
-        }
+        Gate::authorize('create', [
+            Result::class,
+            $match,
+        ]);
 
         $result = $this->resultService->createResult(
             $match,
@@ -83,10 +60,7 @@ class ResultController extends Controller
 
         return response()->json([
             'message' => 'Result created successfully.',
-            'result' => $result->load([
-                'match',
-                'winner'
-            ])
+            'result' => $result,
         ], 201);
     }
 
