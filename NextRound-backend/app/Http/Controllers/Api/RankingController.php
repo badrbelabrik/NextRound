@@ -44,4 +44,14 @@ class RankingController extends Controller
             'ranking' => $ranking
         ]);
     }
+
+    public function topPlayers()
+    {
+        $rankings = Ranking::with('player')
+            ->orderByDesc('points')
+            ->limit(5)
+            ->get();
+
+        return response()->json($rankings);
+    }
 }

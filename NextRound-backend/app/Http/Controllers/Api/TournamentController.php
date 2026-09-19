@@ -14,12 +14,20 @@ class TournamentController extends Controller
      */
     public function index()
     {
-        $tournaments = Tournament::with('game', 'user')
+        $tournaments = Tournament::with([
+            'game',
+            'user',
+        ])
+            ->withCount([
+                'registrations as approved_registrations_count' => function ($query) {
+                    $query->where('status', 'approved');
+                },
+            ])
             ->latest()
             ->get();
 
         return response()->json([
-            'tournaments' => $tournaments
+            'tournaments' => $tournaments,
         ]);
     }
 
@@ -108,5 +116,18 @@ class TournamentController extends Controller
         return response()->json([
             'message' => 'Tournament deleted successfully.'
         ]);
+    }
+
+    public function myTournaments(Request $request)
+    {
+        $tournaments = Tournament::with([
+            'game',
+            'user',
+        ])
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->get();
+
+        return response()->json($tournaments);
     }
 }
