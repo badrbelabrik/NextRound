@@ -42,6 +42,9 @@ function Home() {
                     tournamentsData
                         .slice(0, 4)
                         .map((tournament) => ({
+                            id:
+                                tournament.game?.id ??
+                                null,
                             image:
                                 tournament.game?.image ??
                                 null,

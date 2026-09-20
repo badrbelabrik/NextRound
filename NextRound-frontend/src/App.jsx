@@ -7,6 +7,7 @@ import Profile from './pages/Profile';
 import UserDashboard from './pages/UserDashboard'
 import Tournaments from "./pages/Tournaments.jsx";
 import TournamentDetails from "./pages/TournamentDetails.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 function App() {
   return (
         <BrowserRouter>
@@ -15,9 +16,17 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register/>} />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/userdashboard" element={<UserDashboard/>} />
                 <Route path="/tournaments" element={<Tournaments />} />
                 <Route path="/tournaments/:id" element={<TournamentDetails />}/>
+                {/* Protected routes */}
+                <Route element={<ProtectedRoute />}>
+
+                    <Route
+                        path="/userdashboard"
+                        element={<UserDashboard />}
+                    />
+
+                </Route>
             </Routes>
         </BrowserRouter>
   );
