@@ -16,6 +16,7 @@ import api from '../services/api';
 function Home() {
     const [tournaments, setTournaments] = useState([]);
     const [players, setPlayers] = useState([]);
+    const [games, setGames] = useState([])
 
     useEffect(() => {
         const loadHomeData = async () => {
@@ -23,9 +24,11 @@ function Home() {
                 const [
                     tournamentsResponse,
                     playersResponse,
+                    gamesResponse,
                 ] = await Promise.all([
                     api.get('/tournaments'),
                     api.get('/top-players'),
+                    api.get('/games'),
                 ]);
 
                 /*
@@ -43,7 +46,7 @@ function Home() {
                         .slice(0, 4)
                         .map((tournament) => ({
                             id:
-                                tournament.game?.id ??
+                                tournament.id ??
                                 null,
                             image:
                                 tournament.game?.image ??
@@ -107,6 +110,8 @@ function Home() {
                             ranking.points,
                         }))
                 );
+
+                setGames(gamesResponse.data.games)
 
             } catch (error) {
                 console.error(
@@ -208,7 +213,7 @@ function Home() {
                                     />
 
                                     <span className="text-2xl font-bold">
-                                        —
+                                        {games.length}
                                     </span>
                                 </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import {useNavigate} from "react-router-dom";
 import {
     CalendarDays,
     Gamepad2,
@@ -268,7 +269,7 @@ function UserDashboard() {
 
                             <div>
                                 <h1 className="text-3xl font-black">
-                                    {user?.user.name || 'Player'}
+                                    {user?.name || 'Player'}
                                 </h1>
 
                                 <p className="mt-1 text-sm text-gray-400">
@@ -1211,6 +1212,7 @@ function RecentTournament({
 function TournamentCard({
                             tournament,
                         }) {
+    const navigate = useNavigate();
     return (
         <div className="rounded-xl border border-white/10 bg-[#111827] p-5">
 
@@ -1260,7 +1262,7 @@ function TournamentCard({
                         {tournament.status}
                     </span>
 
-                    <button
+                    <button onClick={() => navigate(`/tournaments/${tournament.id}`)}
                         type="button"
                         className="flex items-center gap-1 text-sm font-semibold text-white transition hover:text-[#A78BFA]"
                     >

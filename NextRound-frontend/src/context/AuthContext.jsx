@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
             try {
                 const response = await api.get('/me');
 
-                setUser(response.data);
+                setUser(response.data.user);
             } catch (error) {
                 localStorage.removeItem('token');
                 setToken(null);

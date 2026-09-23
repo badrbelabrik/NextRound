@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import {
-    CalendarDays,
-    Gamepad2,
-    Trophy,
-    Users,
-    Clock,
-    CheckCircle,
-    CircleAlert,
-} from 'lucide-react';
+import { CalendarDays, Gamepad2, Trophy, Users, Clock, CheckCircle, CircleAlert} from 'lucide-react';
 
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -58,6 +50,9 @@ function getRoundOrder(round) {
 }
 
 function TournamentDetails() {
+    const [registrations, setRegistrations] = useState([]);
+    const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+    const [updatingRegistration, setUpdatingRegistration] = useState(null);
     const { id } = useParams();
     const { user } = useAuth();
 
@@ -80,7 +75,44 @@ function TournamentDetails() {
         score_player1: '',
         score_player2: '',
     });
+    const loadRegistrations = async () => {
+        if (!user || !tournament) {
+            setRegistrations([]);
+            return;
+        }
 
+        const isCurrentUserOrganizer =
+            Number(user.id) === Number(tournament.user_id);
+
+        if (!isCurrentUserOrganizer) {
+            setRegistrations([]);
+            return;
+        }
+
+        try {
+            setLoadingRegistrations(true);
+
+            const response = await api.get(
+                `/tournaments/${id}/registrations`
+            );
+
+            const registrationsData =
+                response.data.registrations ??
+                response.data ??
+                [];
+
+            setRegistrations(registrationsData);
+        } catch (error) {
+            console.error(
+                'Error loading registrations:',
+                error.response?.data || error.message
+            );
+
+            setRegistrations([]);
+        } finally {
+            setLoadingRegistrations(false);
+        }
+    };
     const loadMatches = async () => {
         const [matchesResponse, resultsResponse] =
             await Promise.all([
@@ -173,13 +205,24 @@ function TournamentDetails() {
                 setError('');
                 setMessage('');
 
-                await loadTournament();
+                const tournamentData =
+                    await loadTournament();
+
                 await loadMatches();
                 await loadRegistration();
+
+                if (
+                    user &&
+                    Number(user.id) ===
+                    Number(tournamentData.user_id)
+                ) {
+                    await loadRegistrations();
+                }
             } catch (error) {
                 console.error(
                     'Error loading tournament:',
-                    error.response?.data || error.message
+                    error.response?.data ||
+                    error.message
                 );
 
                 setError(
@@ -193,11 +236,58 @@ function TournamentDetails() {
 
         loadPage();
     }, [id, user]);
+    const handleRegistrationStatus = async (
+        registrationId,
+        status
+    ) => {
+        try {
+            setUpdatingRegistration(registrationId);
+            setMessage('');
 
+            const response = await api.put(
+                `/registrations/${registrationId}`,
+                {
+                    status,
+                }
+            );
+
+            const updatedRegistration =
+                response.data.registration ??
+                response.data;
+
+            setRegistrations((previous) =>
+                previous.map((registration) =>
+                    Number(registration.id) ===
+                    Number(registrationId)
+                        ? updatedRegistration
+                        : registration
+                )
+            );
+
+            setMessage(
+                status === 'approved'
+                    ? 'Registration approved successfully.'
+                    : 'Registration rejected successfully.'
+            );
+        } catch (error) {
+            console.error(
+                'Error updating registration:',
+                error.response?.data ||
+                error.message
+            );
+
+            setMessage(
+                error.response?.data?.message ||
+                'Unable to update registration.'
+            );
+        } finally {
+            setUpdatingRegistration(null);
+        }
+    };
     const isOrganizer =
         user &&
         tournament &&
-        Number(user.user.id) === Number(tournament.user_id);
+        Number(user.id) === Number(tournament.user_id);
 
     const canRegister =
         user &&
@@ -612,6 +702,20 @@ function TournamentDetails() {
                         >
                             Matches
                         </button>
+                        {isOrganizer && <button
+                            onClick={() =>
+                                setActiveSection(
+                                    'registrations'
+                                )
+                            }
+                            className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
+                                activeSection === 'registrations'
+                                    ? 'border-purple-500 text-white'
+                                    : 'border-transparent text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Registrations
+                        </button>}
 
                     </div>
                 </div>
@@ -1190,7 +1294,142 @@ function TournamentDetails() {
 
                     </section>
                 )}
+                {/* ===================================== */}
+                {/* REGISTRATIONS */}
+                {/* ===================================== */}
+                {isOrganizer && (
+                    <section className="mt-8 lg:col-span-3">
+                        <div className="rounded-2xl border border-white/10 bg-[#111827] p-6">
 
+                            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold">
+                                        Registration Requests
+                                    </h2>
+
+                                    <p className="mt-2 text-sm text-gray-400">
+                                        Manage players who want to join your
+                                        tournament.
+                                    </p>
+                                </div>
+
+                                <span className="w-fit rounded-full bg-white/5 px-3 py-1 text-sm text-gray-400">
+                    {registrations.length} registrations
+                </span>
+                            </div>
+
+                            {loadingRegistrations ? (
+                                <div className="py-10 text-center text-gray-400">
+                                    Loading registration requests...
+                                </div>
+                            ) : registrations.length === 0 ? (
+                                <div className="rounded-xl border border-white/10 bg-[#0B0F19] py-10 text-center text-gray-400">
+                                    No registration requests yet.
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+
+                                    {registrations.map((registration) => {
+                                        const isUpdating =
+                                            Number(updatingRegistration) ===
+                                            Number(registration.id);
+
+                                        return (
+                                            <div
+                                                key={registration.id}
+                                                className="flex flex-col gap-5 rounded-xl border border-white/10 bg-[#0B0F19] p-5 md:flex-row md:items-center md:justify-between"
+                                            >
+
+                                                {/* Player information */}
+                                                <div>
+                                                    <h3 className="font-semibold">
+                                                        {registration.user?.name ||
+                                                            'Unknown player'}
+                                                    </h3>
+
+                                                    <p className="mt-1 text-sm text-gray-500">
+                                                        {registration.user?.email ||
+                                                            'No email available'}
+                                                    </p>
+
+                                                    <p className="mt-2 text-xs text-gray-600">
+                                                        Registered on{' '}
+                                                        {formatDate(
+                                                            registration.registration_date
+                                                        )}
+                                                    </p>
+                                                </div>
+
+                                                {/* Status and actions */}
+                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+                                    <span
+                                        className={`w-fit rounded-full px-3 py-1 text-xs ${
+                                            registration.status ===
+                                            'approved'
+                                                ? 'bg-green-500/10 text-green-400'
+                                                : registration.status ===
+                                                'rejected'
+                                                    ? 'bg-red-500/10 text-red-400'
+                                                    : registration.status ===
+                                                    'cancelled'
+                                                        ? 'bg-gray-500/10 text-gray-400'
+                                                        : 'bg-yellow-500/10 text-yellow-400'
+                                        }`}
+                                    >
+                                        {formatStatus(
+                                            registration.status
+                                        )}
+                                    </span>
+
+                                                    {registration.status ===
+                                                        'pending' && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleRegistrationStatus(
+                                                                            registration.id,
+                                                                            'approved'
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        isUpdating
+                                                                    }
+                                                                    className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    {isUpdating
+                                                                        ? 'Updating...'
+                                                                        : 'Approve'}
+                                                                </button>
+
+                                                                <button
+                                                                    onClick={() =>
+                                                                        handleRegistrationStatus(
+                                                                            registration.id,
+                                                                            'rejected'
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        isUpdating
+                                                                    }
+                                                                    className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                </div>
+                            )}
+
+                        </div>
+                    </section>
+                )}
             </main>
 
             {/* ===================================== */}
