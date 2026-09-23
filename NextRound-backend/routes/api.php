@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\NotificationController;
@@ -24,6 +25,11 @@ Route::get('/matches', [TournamentMatchController::class, 'index']);
 Route::get('/results', [ResultController::class, 'index']);
 
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    //USERS
+    Route::get('/admin/users', [AdminUserController::class, 'index',]);
+    Route::put('/admin/users/{user}', [AdminUserController::class, 'update',]);
+    Route::delete('/admin/users/{user}', [AdminUserController::class, 'destroy',]);
+    //GAMES
     Route::post('/games', [GameController::class, 'store']);
     Route::put('/games/{game}', [GameController::class, 'update']);
     Route::delete('/games/{game}', [GameController::class, 'destroy']);
@@ -38,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-tournaments', [TournamentController::class, 'myTournaments']);
     Route::put('/tournaments/{tournament}', [TournamentController::class, 'update']);
     Route::delete('/tournaments/{tournament}', [TournamentController::class, 'destroy']);
+    Route::post('/tournaments/{tournament}/start', [TournamentController::class, 'start']);
     //REGISTRATION
     Route::get('/my-registrations', [RegistrationController::class, 'myRegistrations']);
     Route::get('/tournaments/{tournament}/registrations', [RegistrationController::class, 'index']);

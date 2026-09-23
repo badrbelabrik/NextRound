@@ -9,15 +9,27 @@ import Tournaments from "./pages/Tournaments.jsx";
 import TournamentDetails from "./pages/TournamentDetails.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from './components/GuestRoute';
+import Games from './pages/Games.jsx';
+import Rankings from './pages/Rankings.jsx';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
+import About from './pages/About.jsx';
 
 function App() {
-  return (
+    return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/tournaments" element={<Tournaments />} />
-                <Route path="/tournaments/:id" element={<TournamentDetails />}/>
+                <Route path="/games" element={<Games />} />
+                <Route path="/rankings" element={<Rankings />} />
+                <Route path="/tournaments/:id" element={<TournamentDetails />} />
+                <Route path="/about" element={<About />} />
+                {/* Admin routes*/}
+                <Route element={<AdminRoute />}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                </Route>
                 {/* Guest routes */}
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
@@ -34,7 +46,7 @@ function App() {
                 </Route>
             </Routes>
         </BrowserRouter>
-  );
+    );
 }
 
 export default App

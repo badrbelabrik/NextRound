@@ -53,6 +53,8 @@ class MatchService
 
             $matches = [];
 
+            $players = $players->shuffle();
+
             for ($i = 0; $i < $playerCount; $i += 2) {
                 $match = TournamentMatch::create([
                     'tournament_id' => $tournament->id,
