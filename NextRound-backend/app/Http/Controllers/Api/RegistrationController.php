@@ -60,30 +60,51 @@ class RegistrationController extends Controller
     /**
      * Approve or reject a registration.
      */
-    public function update(Request $request, Registration $registration)
-    {
+    public function update(
+        Request $request,
+        Registration $registration
+    ) {
         Gate::authorize('update', $registration);
 
         $validated = $request->validate([
-            'status' => 'required|in:approved,rejected',
+            'status' => [
+                'required',
+                'in:pending,approved,rejected,cancelled',
+            ],
         ]);
 
-        try {
-            $registration = $this->registrationService->updateStatus(
-                $registration,
-                $validated['status']
-            );
+        // Only check capacity when approving a registration
+        if (
+            $validated['status'] === 'approved' &&
+            $registration->status !== 'approved'
+        ) {
+            $approvedPlayersCount = Registration::where(
+                'tournament_id',
+                $registration->tournament_id
+            )
+                ->where('status', 'approved')
+                ->count();
 
-            return response()->json([
-                'message' => 'Registration status updated successfully.',
-                'registration' => $registration
-            ]);
+            $maxPlayers = $registration->tournament->max_players;
 
-        } catch (InvalidArgumentException $e) {
-            return response()->json([
-                'message' => $e->getMessage()
-            ], 422);
+            if ($approvedPlayersCount >= $maxPlayers) {
+                return response()->json([
+                    'message' => "The tournament is already full. Maximum players: {$maxPlayers}.",
+                ], 422);
+            }
         }
+
+        $registration->update([
+            'status' => $validated['status'],
+        ]);
+
+        return response()->json([
+            'message' => 'Registration updated successfully.',
+            'registration' => $registration->fresh([
+                'user',
+                'tournament',
+            ]),
+        ]);
     }
 
     /**

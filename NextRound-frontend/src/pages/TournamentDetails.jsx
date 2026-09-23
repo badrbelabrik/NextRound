@@ -290,6 +290,7 @@ function TournamentDetails() {
 
         loadPage();
     }, [id, user]);
+    
     const handleRegistrationStatus = async (
         registrationId,
         status
