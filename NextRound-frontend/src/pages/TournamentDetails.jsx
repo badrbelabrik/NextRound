@@ -57,6 +57,7 @@ function TournamentDetails() {
     const { user } = useAuth();
 
     const [tournament, setTournament] = useState(null);
+    const [startingTournament, setStartingTournament] = useState(false);
     const [matches, setMatches] = useState([]);
     const [myRegistration, setMyRegistration] = useState(null);
 
@@ -75,6 +76,59 @@ function TournamentDetails() {
         score_player1: '',
         score_player2: '',
     });
+
+    const handleStartTournament = async () => {
+    const confirmed = window.confirm(
+        'Are you sure you want to start this tournament? The bracket will be generated from the approved players.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        setStartingTournament(true);
+        setMessage('');
+        setError('');
+
+        const response = await api.post(
+            `/tournaments/${id}/start`
+        );
+
+        if (response.data.tournament) {
+            setTournament(
+                response.data.tournament
+            );
+        }
+
+        if (response.data.matches) {
+            setMatches(response.data.matches);
+        } else {
+            await loadMatches();
+        }
+
+        setMessage(
+            response.data.message ||
+                'Tournament started successfully.'
+        );
+
+        setActiveSection('brackets');
+    } catch (error) {
+        console.error(
+            'Error starting tournament:',
+            error.response?.data ||
+                error.message
+        );
+
+        setError(
+            error.response?.data?.message ||
+                'Unable to start the tournament.'
+        );
+    } finally {
+        setStartingTournament(false);
+    }
+};
+
     const loadRegistrations = async () => {
         if (!user || !tournament) {
             setRegistrations([]);
@@ -726,7 +780,43 @@ function TournamentDetails() {
 
                 {activeSection === 'overview' && (
                     <section className="mt-8 grid gap-8 lg:grid-cols-3">
+                         {isOrganizer &&
+            tournament.status === 'open' &&
+            matches.length === 0 && (
+                <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6">
 
+                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div>
+                            <h2 className="text-xl font-bold">
+                                Ready to start?
+                            </h2>
+
+                            <p className="mt-2 text-sm text-gray-400">
+                                Start the tournament to generate
+                                the bracket and first-round matches
+                                from the approved players.
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={
+                                handleStartTournament
+                            }
+                            disabled={
+                                startingTournament
+                            }
+                            className="rounded-xl bg-[#7C3AED] px-6 py-3 font-semibold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {startingTournament
+                                ? 'Starting...'
+                                : 'Start Tournament'}
+                        </button>
+
+                    </div>
+
+                </div>
+            )}
                         {/* Description */}
                         <div className="lg:col-span-2">
 

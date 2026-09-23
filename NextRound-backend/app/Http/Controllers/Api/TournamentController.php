@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Registration;
 use App\Models\Tournament;
+use App\Models\TournamentMatch;
+use App\Services\MatchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use InvalidArgumentException;
 
 class TournamentController extends Controller
 {
@@ -30,7 +34,62 @@ class TournamentController extends Controller
             'tournaments' => $tournaments,
         ]);
     }
+    public function start(
+        Request $request,
+        Tournament $tournament,
+        MatchService $matchService
+    ) {
+        Gate::authorize('update', $tournament);
 
+        if ($tournament->status !== 'open') {
+            return response()->json([
+                'message' => 'Only open tournaments can be started.',
+            ], 422);
+        }
+
+        $approvedPlayersCount = Registration::where(
+            'tournament_id',
+            $tournament->id
+        )
+            ->where('status', 'approved')
+            ->count();
+
+        if ($approvedPlayersCount < $tournament->max_players) {
+            return response()->json([
+                'message' => "The tournament cannot be started yet. {$approvedPlayersCount} of {$tournament->max_players} players are approved.",
+            ], 422);
+        }
+
+        if ($approvedPlayersCount > $tournament->max_players) {
+            return response()->json([
+                'message' => "The tournament has too many approved players. Maximum allowed: {$tournament->max_players}.",
+            ], 422);
+        }
+
+        try {
+            $matchService->generateMatches($tournament);
+
+            $tournament->refresh();
+
+            $matches = TournamentMatch::with([
+                'firstPlayer',
+                'secondPlayer',
+                'result',
+            ])
+                ->where('tournament_id', $tournament->id)
+                ->get();
+
+            return response()->json([
+                'message' => 'Tournament started successfully.',
+                'tournament' => $tournament,
+                'matches' => $matches,
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
     /**
      * Store a newly created tournament.
      */
