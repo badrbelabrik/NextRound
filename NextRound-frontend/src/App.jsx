@@ -9,6 +9,8 @@ import Tournaments from "./pages/Tournaments.jsx";
 import TournamentDetails from "./pages/TournamentDetails.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from './components/GuestRoute';
+import Games from './pages/Games.jsx';
+
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/tournaments" element={<Tournaments />} />
+                <Route path="/games" element={<Games />} />
                 <Route path="/tournaments/:id" element={<TournamentDetails />}/>
                 {/* Guest routes */}
                 <Route element={<GuestRoute />}>
