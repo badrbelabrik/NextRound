@@ -21,6 +21,8 @@ Route::get('/games/{game}/rankings', [RankingController::class, 'index']);
 Route::get('/games/{game}/rankings/{user}', [RankingController::class, 'show']);
 Route::get('/top-players', [RankingController::class, 'topPlayers']);
 Route::get('/matches', [TournamentMatchController::class, 'index']);
+Route::get('/results', [ResultController::class, 'index']);
+
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/games', [GameController::class, 'store']);
     Route::put('/games/{game}', [GameController::class, 'update']);
@@ -51,7 +53,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/matches/{match}', [TournamentMatchController::class, 'update']);
     Route::delete('/matches/{match}', [TournamentMatchController::class, 'destroy']);
     //MATCH-RESULTS
-    Route::get('/results', [ResultController::class, 'index']);
     Route::get('/my-results', [ResultController::class, 'myResults']);
     Route::get('/results/{result}', [ResultController::class, 'show']);
     Route::post('/results', [ResultController::class, 'store']);
@@ -62,4 +63,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/{notification}', [NotificationController::class, 'show']);
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead',]);
 });

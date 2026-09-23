@@ -9,13 +9,21 @@ import {
 
 import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 function Navbar() {
     const { user, logout } = useAuth();
 
+    const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [loadingNotifications, setLoadingNotifications] =
+        useState(false);
+
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] =
+        useState(false);
 
     const profileRef = useRef(null);
     const notificationsRef = useRef(null);
@@ -37,10 +45,16 @@ function Navbar() {
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener(
+            'mousedown',
+            handleClickOutside
+        );
 
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener(
+                'mousedown',
+                handleClickOutside
+            );
         };
     }, []);
 
@@ -59,6 +73,110 @@ function Navbar() {
 
         setIsProfileOpen(false);
         setIsNotificationsOpen(false);
+    };
+
+useEffect(() => {
+    if (!user) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setLoadingNotifications(false);
+        return;
+    }
+
+    const loadNotifications = async () => {
+        try {
+            setLoadingNotifications(true);
+
+            const response = await api.get('/notifications');
+
+            const notificationsData =
+                response.data.notifications ??
+                response.data ??
+                [];
+
+            setNotifications(notificationsData);
+
+            const unread = notificationsData.filter(
+                (notification) => !notification.is_read
+            ).length;
+
+            setUnreadCount(unread);
+        } catch (error) {
+            console.error(
+                'Error loading notifications:',
+                error.response?.data || error.message
+            );
+
+            setNotifications([]);
+            setUnreadCount(0);
+        } finally {
+            setLoadingNotifications(false);
+        }
+    };
+
+    loadNotifications();
+}, [user]);
+
+    const handleMarkAsRead = async (notificationId) => {
+        const notification = notifications.find(
+            (item) => item.id === notificationId
+        );
+
+        if (!notification || notification.is_read) {
+            return;
+        }
+
+        try {
+            await api.put(
+                `/notifications/${notificationId}/read`
+            );
+
+            setNotifications((previous) =>
+                previous.map((item) =>
+                    item.id === notificationId
+                        ? {
+                              ...item,
+                              is_read: true,
+                          }
+                        : item
+                )
+            );
+
+            setUnreadCount((previous) =>
+                Math.max(previous - 1, 0)
+            );
+        } catch (error) {
+            console.error(
+                'Error marking notification as read:',
+                error.response?.data || error.message
+            );
+        }
+    };
+
+    const handleMarkAllAsRead = async () => {
+        if (unreadCount === 0) {
+            return;
+        }
+
+        try {
+            await api.put(
+                '/notifications/read-all'
+            );
+
+            setNotifications((previous) =>
+                previous.map((notification) => ({
+                    ...notification,
+                    is_read: true,
+                }))
+            );
+
+            setUnreadCount(0);
+        } catch (error) {
+            console.error(
+                'Error marking all notifications as read:',
+                error.response?.data || error.message
+            );
+        }
     };
 
     return (
@@ -118,6 +236,7 @@ function Navbar() {
 
                     {/* Search */}
                     <div className="hidden items-center rounded-lg border border-white/15 bg-[#111827] px-3 py-2 lg:flex">
+
                         <Search
                             size={16}
                             className="mr-2 text-gray-500"
@@ -128,90 +247,163 @@ function Navbar() {
                             placeholder="Search tournaments..."
                             className="w-44 bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
                         />
+
                     </div>
 
                     {user ? (
                         <>
+
                             {/* Notifications */}
                             <div
                                 ref={notificationsRef}
                                 className="relative"
                             >
                                 <button
-                                    onClick={handleNotificationsToggle}
+                                    onClick={
+                                        handleNotificationsToggle
+                                    }
                                     className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white/5 hover:text-white"
                                     aria-label="Notifications"
                                 >
                                     <Bell size={20} />
 
                                     {/* Unread badge */}
-                                    <span className="absolute right-1.5 top-1.5 flex h-2.5 w-2.5 rounded-full bg-[#8B5CF6] ring-2 ring-[#0B0F19]" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#8B5CF6] px-1 text-[10px] font-bold text-white ring-2 ring-[#0B0F19]">
+                                            {unreadCount > 9
+                                                ? '9+'
+                                                : unreadCount}
+                                        </span>
+                                    )}
                                 </button>
 
                                 {isNotificationsOpen && (
                                     <div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#111827] shadow-2xl">
 
+                                        {/* Notification header */}
                                         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+
                                             <h3 className="font-semibold text-white">
                                                 Notifications
+
+                                                {unreadCount > 0 && (
+                                                    <span className="ml-2 text-xs font-normal text-[#A78BFA]">
+                                                        {unreadCount}{' '}
+                                                        unread
+                                                    </span>
+                                                )}
                                             </h3>
 
-                                            <button className="text-xs text-[#A78BFA] hover:text-[#C4B5FD]">
+                                            <button
+                                                onClick={
+                                                    handleMarkAllAsRead
+                                                }
+                                                disabled={
+                                                    unreadCount ===
+                                                    0
+                                                }
+                                                className="text-xs text-[#A78BFA] transition hover:text-[#C4B5FD] disabled:cursor-not-allowed disabled:opacity-40"
+                                            >
                                                 Mark all as read
                                             </button>
+
                                         </div>
 
+                                        {/* Notifications list */}
                                         <div className="max-h-80 overflow-y-auto">
 
-                                            {/* Example notification */}
-                                            <div className="flex gap-3 border-b border-white/5 px-4 py-4 transition hover:bg-white/5">
-                                                <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#8B5CF6]" />
-
-                                                <div>
-                                                    <p className="text-sm font-medium text-white">
-                                                        Match scheduled
-                                                    </p>
-
-                                                    <p className="mt-1 text-xs leading-5 text-gray-400">
-                                                        Your next match has been scheduled.
-                                                    </p>
-
-                                                    <p className="mt-2 text-xs text-gray-600">
-                                                        Just now
-                                                    </p>
+                                            {loadingNotifications ? (
+                                                <div className="px-4 py-8 text-center text-sm text-gray-500">
+                                                    Loading
+                                                    notifications...
                                                 </div>
-                                            </div>
-
-                                            <div className="flex gap-3 border-b border-white/5 px-4 py-4 transition hover:bg-white/5">
-                                                <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#8B5CF6]" />
-
-                                                <div>
-                                                    <p className="text-sm font-medium text-white">
-                                                        Registration approved
-                                                    </p>
-
-                                                    <p className="mt-1 text-xs leading-5 text-gray-400">
-                                                        Your tournament registration was approved.
-                                                    </p>
-
-                                                    <p className="mt-2 text-xs text-gray-600">
-                                                        2 hours ago
-                                                    </p>
+                                            ) : notifications.length ===
+                                              0 ? (
+                                                <div className="px-4 py-8 text-center text-sm text-gray-500">
+                                                    No notifications
+                                                    yet.
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                notifications
+                                                    .slice(0, 10)
+                                                    .map(
+                                                        (
+                                                            notification
+                                                        ) => (
+                                                            <button
+                                                                key={
+                                                                    notification.id
+                                                                }
+                                                                onClick={() =>
+                                                                    handleMarkAsRead(
+                                                                        notification.id
+                                                                    )
+                                                                }
+                                                                className={`flex w-full gap-3 border-b border-white/5 px-4 py-4 text-left transition hover:bg-white/5 ${
+                                                                    !notification.is_read
+                                                                        ? 'bg-white/[0.02]'
+                                                                        : ''
+                                                                }`}
+                                                            >
+
+                                                                {/* Unread indicator */}
+                                                                {!notification.is_read ? (
+                                                                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#8B5CF6]" />
+                                                                ) : (
+                                                                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-transparent" />
+                                                                )}
+
+                                                                <div className="min-w-0">
+
+                                                                    <p
+                                                                        className={`text-sm ${
+                                                                            notification.is_read
+                                                                                ? 'font-medium text-gray-300'
+                                                                                : 'font-semibold text-white'
+                                                                        }`}
+                                                                    >
+                                                                        {
+                                                                            notification.title
+                                                                        }
+                                                                    </p>
+
+                                                                    <p className="mt-1 text-xs leading-5 text-gray-400">
+                                                                        {
+                                                                            notification.message
+                                                                        }
+                                                                    </p>
+
+                                                                    <p className="mt-2 text-xs text-gray-600">
+                                                                        {new Date(
+                                                                            notification.created_at
+                                                                        ).toLocaleString()}
+                                                                    </p>
+
+                                                                </div>
+
+                                                            </button>
+                                                        )
+                                                    )
+                                            )}
 
                                         </div>
 
+                                        {/* View all */}
                                         <div className="border-t border-white/10 px-4 py-3 text-center">
+
                                             <Link
                                                 to="/notifications"
                                                 onClick={() =>
-                                                    setIsNotificationsOpen(false)
+                                                    setIsNotificationsOpen(
+                                                        false
+                                                    )
                                                 }
                                                 className="text-sm font-medium text-[#A78BFA] transition hover:text-[#C4B5FD]"
                                             >
-                                                View all notifications
+                                                View all
+                                                notifications
                                             </Link>
+
                                         </div>
 
                                     </div>
@@ -224,7 +416,9 @@ function Navbar() {
                                 className="relative"
                             >
                                 <button
-                                    onClick={handleProfileToggle}
+                                    onClick={
+                                        handleProfileToggle
+                                    }
                                     className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-white/5"
                                 >
                                     <UserCircle
@@ -238,12 +432,14 @@ function Navbar() {
                                 </button>
 
                                 {isProfileOpen && (
-                                    <div className="absolute right-0 top-12 z-100 w-48 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
+                                    <div className="absolute right-0 top-12 z-[100] w-48 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
 
                                         <Link
                                             to="/profile"
                                             onClick={() =>
-                                                setIsProfileOpen(false)
+                                                setIsProfileOpen(
+                                                    false
+                                                )
                                             }
                                             className="block rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
                                         >
@@ -253,7 +449,9 @@ function Navbar() {
                                         <Link
                                             to="/dashboard"
                                             onClick={() =>
-                                                setIsProfileOpen(false)
+                                                setIsProfileOpen(
+                                                    false
+                                                )
                                             }
                                             className="block rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
                                         >
@@ -263,7 +461,9 @@ function Navbar() {
                                         <div className="my-1 border-t border-white/10" />
 
                                         <button
-                                            onClick={handleLogout}
+                                            onClick={
+                                                handleLogout
+                                            }
                                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
                                         >
                                             <LogOut size={16} />
@@ -273,6 +473,7 @@ function Navbar() {
                                     </div>
                                 )}
                             </div>
+
                         </>
                     ) : (
                         <>
@@ -293,6 +494,7 @@ function Navbar() {
                             </Link>
                         </>
                     )}
+
                 </div>
             </div>
         </nav>

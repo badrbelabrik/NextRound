@@ -1,6 +1,8 @@
 import { CalendarDays, Users } from 'lucide-react';
+import {useNavigate} from "react-router-dom";
 
 function TournamentCard({
+    id,
     image,
     game,
     title,
@@ -17,7 +19,7 @@ function TournamentCard({
         Closed: 'bg-orange-500/20 text-orange-400',
         Finished: 'bg-gray-500/20 text-gray-400',
     };
-
+    const navigate = useNavigate();
     return (
         <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111827] transition duration-300 hover:-translate-y-1 hover:border-[#7C3AED]/50">
 
@@ -71,7 +73,10 @@ function TournamentCard({
 
                 </div>
 
-                <button className="mt-5 w-full rounded-lg bg-[#7C3AED] py-2.5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]">
+                <button
+                    onClick={() => navigate(`/tournaments/${id}`)}
+                    className="mt-5 w-full rounded-lg bg-[#7C3AED] py-2.5 text-sm font-semibold text-white transition hover:bg-[#6D28D9]"
+                >
                     View Tournament
                 </button>
             </div>
