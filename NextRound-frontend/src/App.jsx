@@ -13,6 +13,7 @@ import Games from './pages/Games.jsx';
 import Rankings from './pages/Rankings.jsx';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminRoute from './components/AdminRoute';
+import About from './pages/About.jsx';
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/games" element={<Games />} />
                 <Route path="/rankings" element={<Rankings />} />
                 <Route path="/tournaments/:id" element={<TournamentDetails />} />
+                <Route path="/about" element={<About />} />
                 {/* Admin routes*/}
                 <Route element={<AdminRoute />}>
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
