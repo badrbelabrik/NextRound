@@ -11,10 +11,11 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import GuestRoute from './components/GuestRoute';
 import Games from './pages/Games.jsx';
 import Rankings from './pages/Rankings.jsx';
-
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
-  return (
+    return (
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Home />} />
@@ -22,7 +23,11 @@ function App() {
                 <Route path="/tournaments" element={<Tournaments />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/rankings" element={<Rankings />} />
-                <Route path="/tournaments/:id" element={<TournamentDetails />}/>
+                <Route path="/tournaments/:id" element={<TournamentDetails />} />
+                {/* Admin routes*/}
+                <Route element={<AdminRoute />}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                </Route>
                 {/* Guest routes */}
                 <Route element={<GuestRoute />}>
                     <Route path="/login" element={<Login />} />
@@ -39,7 +44,7 @@ function App() {
                 </Route>
             </Routes>
         </BrowserRouter>
-  );
+    );
 }
 
 export default App
