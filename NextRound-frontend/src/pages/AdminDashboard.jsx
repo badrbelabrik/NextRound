@@ -10,6 +10,7 @@ import {
 
 import Navbar from '../components/Navbar';
 import api from '../services/api';
+import imageHelper from '../services/imageHelper.js'
 
 function AdminDashboard() {
     const [activeSection, setActiveSection] =
@@ -38,7 +39,7 @@ function AdminDashboard() {
     const [gameForm, setGameForm] = useState({
         name: '',
         description: '',
-        image: '',
+        image: null,
     });
 
     const [updatingUser, setUpdatingUser] =
@@ -130,12 +131,11 @@ function AdminDashboard() {
         setEditingGame(game);
 
         setGameForm({
-            name: game.name ?? '',
-            description: game.description ?? '',
-            image: game.image ?? '',
+            name: game.name || '',
+            description: game.description || '',
+            image: null,
         });
 
-        setMessage('');
         setShowGameModal(true);
     };
 
@@ -159,69 +159,51 @@ function AdminDashboard() {
 
         try {
             setSavingGame(true);
-            setMessage('');
             setError('');
 
-            const payload = {
-                name: gameForm.name,
-                description:
-                    gameForm.description || null,
-                image:
-                    gameForm.image || null,
-            };
+            const formData = new FormData();
 
-            if (editingGame) {
-                const response = await api.put(
-                    `/games/${editingGame.id}`,
-                    payload
-                );
+            formData.append('name', gameForm.name);
+            formData.append(
+                'description',
+                gameForm.description || ''
+            );
 
-                const updatedGame =
-                    response.data.game ??
-                    response.data;
-
-                setGames((previous) =>
-                    previous.map((game) =>
-                        game.id === editingGame.id
-                            ? updatedGame
-                            : game
-                    )
-                );
-
-                setMessage(
-                    'Game updated successfully.'
-                );
-            } else {
-                const response = await api.post(
-                    '/games',
-                    payload
-                );
-
-                const createdGame =
-                    response.data.game ??
-                    response.data;
-
-                setGames((previous) => [
-                    createdGame,
-                    ...previous,
-                ]);
-
-                setMessage(
-                    'Game created successfully.'
-                );
+            if (gameForm.image instanceof File) {
+                formData.append('image', gameForm.image);
             }
 
+            if (editingGame) {
+                formData.append('_method', 'PUT');
+
+                await api.post(
+                    `/games/${editingGame.id}`,
+                    formData,
+                    {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    }
+                );
+            } else {
+                await api.post('/games', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+            }
+
+            await loadGames();
             closeGameModal();
         } catch (error) {
             console.error(
                 'Error saving game:',
-                error.response?.data ||
-                    error.message
+                error.response?.data || error.message
             );
 
             setError(
                 error.response?.data?.message ||
-                    'Unable to save game.'
+                'Unable to save game.'
             );
         } finally {
             setSavingGame(false);
@@ -480,7 +462,7 @@ function AdminDashboard() {
                                             {game.image ? (
                                                 <img
                                                     src={
-                                                        game.image
+                                                        imageHelper(game.image)
                                                     }
                                                     alt={
                                                         game.name
@@ -845,31 +827,30 @@ function AdminDashboard() {
 
                             <div>
                                 <label className="mb-2 block text-sm text-gray-400">
-                                    Image URL
+                                    Game image
                                 </label>
 
                                 <input
-                                    type="url"
-                                    value={
-                                        gameForm.image
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    onChange={(event) =>
+                                        setGameForm((previous) => ({
+                                            ...previous,
+                                            image: event.target.files[0] || null,
+                                        }))
                                     }
-                                    onChange={(
-                                        event
-                                    ) =>
-                                        setGameForm(
-                                            (
-                                                previous
-                                            ) => ({
-                                                ...previous,
-                                                image: event
-                                                    .target
-                                                    .value,
-                                            })
-                                        )
-                                    }
-                                    placeholder="https://..."
-                                    className="w-full rounded-xl border border-white/10 bg-[#0B0F19] px-4 py-3 text-white outline-none focus:border-purple-500"
+                                    className="w-full rounded-xl border border-white/10 bg-[#0B0F19] px-4 py-3 text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-purple-600 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-purple-500"
                                 />
+
+                                <p className="mt-2 text-xs text-gray-500">
+                                    PNG, JPG, JPEG or WEBP. Maximum size: 5 MB.
+                                </p>
+
+                                {gameForm.image instanceof File && (
+                                    <p className="mt-2 text-sm text-purple-400">
+                                        Selected: {gameForm.image.name}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="flex gap-3 pt-2">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Game;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class GameController extends Controller
 {
@@ -26,16 +27,21 @@ class GameController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:games,name',
-            'description' => 'nullable|string',
-            'image' => 'nullable|string|max:255',
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')
+                ->store('games', 'public');
+        }
 
         $game = Game::create($validated);
 
         return response()->json([
             'message' => 'Game created successfully.',
-            'game' => $game
+            'game' => $game,
         ], 201);
     }
 
@@ -55,16 +61,25 @@ class GameController extends Controller
     public function update(Request $request, Game $game)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:games,name,' . $game->id,
-            'description' => 'nullable|string',
-            'image' => 'nullable|string|max:255',
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
+
+        if ($request->hasFile('image')) {
+            if ($game->image) {
+                Storage::disk('public')->delete($game->image);
+            }
+
+            $validated['image'] = $request->file('image')
+                ->store('games', 'public');
+        }
 
         $game->update($validated);
 
         return response()->json([
             'message' => 'Game updated successfully.',
-            'game' => $game
+            'game' => $game->fresh(),
         ]);
     }
 
@@ -73,10 +88,14 @@ class GameController extends Controller
      */
     public function destroy(Game $game)
     {
+        if ($game->image) {
+            Storage::disk('public')->delete($game->image);
+        }
+
         $game->delete();
 
         return response()->json([
-            'message' => 'Game deleted successfully.'
+            'message' => 'Game deleted successfully.',
         ]);
     }
 }

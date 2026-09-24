@@ -496,6 +496,7 @@ function CreateTournamentModal({
         title: '',
         game_id: '',
         description: '',
+        image: null,
         start_date: '',
         end_date: '',
         max_players: '',
@@ -555,18 +556,28 @@ function CreateTournamentModal({
         setValidationErrors({});
 
         try {
-            await api.post('/tournaments', {
-                title: formData.title,
-                game_id: formData.game_id,
-                description: formData.description,
-                start_date: formData.start_date,
-                end_date:
-                    formData.end_date || null,
-                max_players: Number(
-                    formData.max_players
-                ),
-                status: formData.status,
-                prize: formData.prize || null,
+            const payload = new FormData();
+
+            payload.append('title', formData.title);
+            payload.append('game_id', formData.game_id);
+            payload.append('description', formData.description || '');
+            payload.append('start_date', formData.start_date);
+            payload.append('max_players', formData.max_players);
+            payload.append('status', formData.status);
+            payload.append('prize', formData.prize || '');
+
+            if (formData.end_date) {
+                payload.append('end_date', formData.end_date);
+            }
+
+            if (formData.image instanceof File) {
+                payload.append('image', formData.image);
+            }
+
+            await api.post('/tournaments', payload, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
 
             onCreated();
@@ -575,8 +586,7 @@ function CreateTournamentModal({
         } catch (error) {
             console.error(
                 'ERROR /tournaments POST:',
-                error.response?.data ||
-                error.message
+                error.response?.data || error.message
             );
 
             if (error.response?.status === 422) {
@@ -757,6 +767,34 @@ function CreateTournamentModal({
                                         validationErrors
                                             .description[0]
                                     }
+                                </p>
+                            )}
+                        </div>
+                        {/* image */}
+                        <div>
+                            <label className="mb-2 block text-sm text-gray-400">
+                                Tournament image
+                            </label>
+
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(event) =>
+                                    setFormData((previous) => ({
+                                        ...previous,
+                                        image: event.target.files[0] || null,
+                                    }))
+                                }
+                                className="w-full rounded-xl border border-white/10 bg-[#0B0F19] px-4 py-3 text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-purple-600 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-purple-500"
+                            />
+
+                            <p className="mt-2 text-xs text-gray-500">
+                                PNG, JPG, JPEG or WEBP. Maximum size: 5 MB.
+                            </p>
+
+                            {formData.image instanceof File && (
+                                <p className="mt-2 text-sm text-purple-400">
+                                    Selected: {formData.image.name}
                                 </p>
                             )}
                         </div>

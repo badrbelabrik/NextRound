@@ -98,20 +98,49 @@ class TournamentController extends Controller
         Gate::authorize('create', Tournament::class);
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'game_id' => 'required|exists:games,id',
-            'description' => 'nullable|string',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'max_players' => 'required|integer|min:2',
-            'prize' => 'nullable|string|max:255',
+            'title' => ['required', 'string', 'max:255'],
+            'game_id' => ['required', 'exists:games,id'],
+            'description' => ['nullable', 'string'],
+
+            'image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
+
+            'start_date' => ['required', 'date'],
+            'end_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:start_date',
+            ],
+            'max_players' => [
+                'required',
+                'integer',
+                'min:2',
+            ],
+            'prize' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request
+                ->file('image')
+                ->store('tournaments', 'public');
+        } else {
+            $validated['image'] = null;
+        }
 
         $tournament = Tournament::create([
             'title' => $validated['title'],
             'game_id' => $validated['game_id'],
             'user_id' => $request->user()->id,
             'description' => $validated['description'] ?? null,
+            'image' => $validated['image'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'] ?? null,
             'max_players' => $validated['max_players'],
@@ -121,7 +150,7 @@ class TournamentController extends Controller
 
         return response()->json([
             'message' => 'Tournament created successfully.',
-            'tournament' => $tournament
+            'tournament' => $tournament,
         ], 201);
     }
 
