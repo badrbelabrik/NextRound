@@ -10,7 +10,6 @@ import {
     Plus,
     ChevronRight,
 } from 'lucide-react';
-
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -18,7 +17,7 @@ import api from '../services/api';
 
 function UserDashboard() {
     const { user } = useAuth();
-
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('activity');
 
     const [upcomingMatches, setUpcomingMatches] = useState([]);
@@ -279,6 +278,7 @@ function UserDashboard() {
                         </div>
 
                         <button
+                            onClick={() => navigate(`/profile`)}
                             type="button"
                             className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 text-gray-400 transition hover:bg-white/5 hover:text-white"
                         >

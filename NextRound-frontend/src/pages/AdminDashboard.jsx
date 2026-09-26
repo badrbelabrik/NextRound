@@ -6,6 +6,7 @@ import {
     Pencil,
     Trash2,
     X,
+    Trophy,
 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
@@ -18,7 +19,12 @@ function AdminDashboard() {
 
     const [games, setGames] = useState([]);
     const [users, setUsers] = useState([]);
+    const [tournaments, setTournaments] = useState([]);
 
+    const [loadingTournaments, setLoadingTournaments] =
+        useState(false);
+    const [approvingTournament, setApprovingTournament] =
+        useState(null);
     const [loadingGames, setLoadingGames] =
         useState(true);
     const [loadingUsers, setLoadingUsers] =
@@ -104,6 +110,36 @@ function AdminDashboard() {
         }
     };
 
+    const loadTournaments = async () => {
+        try {
+            setLoadingTournaments(true);
+            setError('');
+
+            const response = await api.get(
+                '/tournaments'
+            );
+
+            const tournamentsData =
+                response.data.tournaments ??
+                response.data ??
+                [];
+
+            setTournaments(tournamentsData);
+        } catch (error) {
+            console.error(
+                'Error loading tournaments:',
+                error.response?.data ||
+                error.message
+            );
+
+            setError(
+                'Unable to load tournaments.'
+            );
+        } finally {
+            setLoadingTournaments(false);
+        }
+    };
+
     useEffect(() => {
         loadGames();
     }, []);
@@ -111,6 +147,9 @@ function AdminDashboard() {
     useEffect(() => {
         if (activeSection === 'users') {
             loadUsers();
+        }
+        if (activeSection === 'tournaments') {
+            loadTournaments();
         }
     }, [activeSection]);
 
@@ -337,6 +376,42 @@ function AdminDashboard() {
         }
     };
 
+    const handleApproveTournament = async (tournamentId) => {
+        try {
+            setApprovingTournament(tournamentId);
+            setError('');
+            setMessage('');
+
+            await api.put(
+                `/admin/tournaments/${tournamentId}/approve`
+            );
+
+            setTournaments((previous) =>
+                previous.filter(
+                    (tournament) =>
+                        tournament.id !== tournamentId
+                )
+            );
+
+            setMessage(
+                'Tournament approved successfully.'
+            );
+        } catch (error) {
+            console.error(
+                'Error approving tournament:',
+                error.response?.data ||
+                error.message
+            );
+
+            setError(
+                error.response?.data?.message ||
+                'Unable to approve tournament.'
+            );
+        } finally {
+            setApprovingTournament(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#0B0F19] text-white">
             <Navbar />
@@ -391,7 +466,19 @@ function AdminDashboard() {
                             <Users size={18} />
                             Users
                         </button>
-
+                        <button
+                            onClick={() =>
+                                setActiveSection('tournaments')
+                            }
+                            className={`flex items-center gap-2 border-b-2 px-2 pb-4 text-sm font-medium transition ${
+                                activeSection === 'tournaments'
+                                    ? 'border-purple-500 text-white'
+                                    : 'border-transparent text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <Trophy size={18} />
+                            Tournaments
+                        </button>
                     </div>
                 </div>
 
@@ -725,7 +812,213 @@ function AdminDashboard() {
 
                     </section>
                 )}
+                {/* ========================= */}
+                {/* TOURNAMENTS */}
+                {/* ========================= */}
 
+                {activeSection === 'tournaments' && (
+                    <section>
+
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold">
+                                Tournaments
+                            </h2>
+
+                            <p className="mt-1 text-sm text-gray-400">
+                                Review and approve tournament requests.
+                            </p>
+                        </div>
+
+                        {loadingTournaments ? (
+                            <div className="rounded-2xl border border-white/10 bg-[#111827] py-16 text-center text-gray-400">
+                                Loading tournaments...
+                            </div>
+                        ) : tournaments.length === 0 ? (
+                            <div className="rounded-2xl border border-white/10 bg-[#111827] py-16 text-center text-gray-400">
+                                No tournaments waiting for approval.
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+
+                                {tournaments.map((tournament) => (
+                                    <div
+                                        key={tournament.id}
+                                        className="overflow-hidden rounded-2xl border border-white/10 bg-[#111827]"
+                                    >
+                                        <div className="flex flex-col lg:flex-row">
+
+                                            {/* Image */}
+                                            <div className="h-56 w-full shrink-0 bg-[#0B0F19] lg:h-auto lg:w-64">
+                                                {tournament.image ? (
+                                                    <img
+                                                        src={imageHelper(
+                                                            tournament.image
+                                                        )}
+                                                        alt={
+                                                            tournament.title
+                                                        }
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : tournament.game?.image ? (
+                                                    <img
+                                                        src={imageHelper(
+                                                            tournament.game.image
+                                                        )}
+                                                        alt={
+                                                            tournament.game.name
+                                                        }
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <Trophy
+                                                            size={60}
+                                                            className="text-purple-400/40"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex flex-1 flex-col justify-between p-6">
+
+                                                <div>
+
+                                                    <div className="flex flex-wrap items-start justify-between gap-4">
+
+                                                        <div>
+                                                            <p className="text-sm font-medium text-purple-400">
+                                                                {tournament.game?.name ??
+                                                                    'Unknown game'}
+                                                            </p>
+
+                                                            <h3 className="mt-1 text-xl font-bold">
+                                                                {tournament.title}
+                                                            </h3>
+                                                        </div>
+                                                        {   tournament.status === 'draft' &&
+                                                            <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-400">
+                                            Pending approval
+                                        </span>
+                                                        }
+
+
+                                                    </div>
+
+                                                    <p className="mt-4 text-sm leading-6 text-gray-400">
+                                                        {tournament.description ||
+                                                            'No description.'}
+                                                    </p>
+
+                                                    <div className="mt-5 grid gap-3 text-sm text-gray-400 sm:grid-cols-2">
+
+                                                        <div>
+                                            <span className="text-gray-500">
+                                                Organizer
+                                            </span>
+                                                            <p className="mt-1 font-medium text-white">
+                                                                {tournament.user?.name ??
+                                                                    'Unknown'}
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                            <span className="text-gray-500">
+                                                Maximum players
+                                            </span>
+                                                            <p className="mt-1 font-medium text-white">
+                                                                {tournament.max_players}
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                            <span className="text-gray-500">
+                                                Start date
+                                            </span>
+                                                            <p className="mt-1 font-medium text-white">
+                                                                {tournament.start_date
+                                                                    ? new Date(
+                                                                        tournament.start_date
+                                                                    ).toLocaleDateString(
+                                                                        'en-US',
+                                                                        {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        }
+                                                                    )
+                                                                    : '—'}
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                            <span className="text-gray-500">
+                                                End date
+                                            </span>
+                                                            <p className="mt-1 font-medium text-white">
+                                                                {tournament.end_date
+                                                                    ? new Date(
+                                                                        tournament.end_date
+                                                                    ).toLocaleDateString(
+                                                                        'en-US',
+                                                                        {
+                                                                            month: 'short',
+                                                                            day: 'numeric',
+                                                                            year: 'numeric',
+                                                                        }
+                                                                    )
+                                                                    : '—'}
+                                                            </p>
+                                                        </div>
+
+                                                    </div>
+
+                                                    {tournament.prize && (
+                                                        <div className="mt-4">
+                                            <span className="text-sm text-gray-500">
+                                                Prize
+                                            </span>
+
+                                                            <p className="mt-1 font-semibold text-white">
+                                                                {tournament.prize}
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                </div>
+
+                                                <div className="mt-6 flex justify-end">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleApproveTournament(
+                                                                tournament.id
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            approvingTournament ===
+                                                            tournament.id
+                                                        }
+                                                        className="flex items-center gap-2 rounded-xl bg-green-600 px-5 py-2.5 text-sm font-semibold transition hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        {approvingTournament ===
+                                                        tournament.id
+                                                            ? 'Approving...'
+                                                            : 'Approve tournament'}
+                                                    </button>
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                ))}
+
+                            </div>
+                        )}
+
+                    </section>
+                )}
             </main>
 
             {/* GAME MODAL */}

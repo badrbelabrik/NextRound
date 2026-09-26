@@ -218,4 +218,25 @@ class TournamentController extends Controller
 
         return response()->json($tournaments);
     }
+
+    public function approve(Tournament $tournament)
+    {
+        if ($tournament->status !== 'draft') {
+            return response()->json([
+                'message' => 'Only draft tournaments can be approved.',
+            ], 422);
+        }
+
+        $tournament->update([
+            'status' => 'open',
+        ]);
+
+        return response()->json([
+            'message' => 'Tournament approved successfully.',
+            'tournament' => $tournament->fresh([
+                'game',
+                'user',
+            ]),
+        ]);
+    }
 }
