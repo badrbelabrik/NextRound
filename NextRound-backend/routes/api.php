@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::delete('/games/{game}', [GameController::class, 'destroy']);
     //TOURNAMENTS
     Route::put('/admin/tournaments/{tournament}/approve', [TournamentController::class, 'approve']);
+    Route::get('/admin/tournaments', [TournamentController::class, 'draftTournaments']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

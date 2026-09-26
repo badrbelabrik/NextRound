@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\TournamentMatch;
+use App\Models\User;
 use App\Services\MatchService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
@@ -27,6 +30,7 @@ class TournamentController extends Controller
                     $query->where('status', 'approved');
                 },
             ])
+            ->where('status', '!=', 'draft')
             ->latest()
             ->get();
 
@@ -93,7 +97,7 @@ class TournamentController extends Controller
     /**
      * Store a newly created tournament.
      */
-    public function store(Request $request)
+    public function store(Request $request, NotificationService $notificationService)
     {
         Gate::authorize('create', Tournament::class);
 
@@ -148,6 +152,17 @@ class TournamentController extends Controller
             'prize' => $validated['prize'] ?? null,
         ]);
 
+        // notify all admins
+        $admins = User::where('role', 'admin')->get();
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'title' => 'New tournament awaiting approval',
+                'message' => "{$request->user()->name} created a new tournament \"{$tournament->title}\". Please review it in the admin dashboard.",
+                'is_read' => false,
+            ]);
+        }
         return response()->json([
             'message' => 'Tournament created successfully.',
             'tournament' => $tournament,
@@ -239,4 +254,21 @@ class TournamentController extends Controller
             ]),
         ]);
     }
+
+    public function draftTournaments()
+    {
+        $tournaments = Tournament::with([
+            'game',
+            'user',
+        ])
+            ->where('status', 'draft')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'tournaments' => $tournaments,
+        ]);
+    }
+
+
 }

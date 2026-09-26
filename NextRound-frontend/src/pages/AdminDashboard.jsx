@@ -116,7 +116,7 @@ function AdminDashboard() {
             setError('');
 
             const response = await api.get(
-                '/tournaments'
+                '/admin/tournaments'
             );
 
             const tournamentsData =
@@ -896,11 +896,10 @@ function AdminDashboard() {
                                                                 {tournament.title}
                                                             </h3>
                                                         </div>
-                                                        {   tournament.status === 'draft' &&
+
                                                             <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-semibold text-yellow-400">
                                             Pending approval
                                         </span>
-                                                        }
 
 
                                                     </div>
