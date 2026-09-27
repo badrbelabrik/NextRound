@@ -1,5 +1,20 @@
 # NextRound
 
+<div align="center">
+
+**A full-stack esports tournament management platform**
+
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![Docker Hub](https://img.shields.io/badge/Docker_Hub-2496ED?logo=docker&logoColor=white)](https://hub.docker.com/u/badrbelabrik)
+
+</div>
+
 NextRound is a full-stack esports tournament management platform built to simplify tournament organization, player registration, match progression, results, rankings, and notifications.
 
 > Every match leads to the next round.
@@ -16,8 +31,11 @@ NextRound is a full-stack esports tournament management platform built to simpli
 - [Authentication](#authentication)
 - [API Overview](#api-overview)
 - [Database](#database)
+- [Class Diagram](#class-diagram)
+- [Use Case Diagram](#use-case-diagram)
 - [Frontend Pages](#frontend-pages)
 - [Docker](#docker)
+- [Docker Hub Images](#docker-hub-images)
 - [Local Development](#local-development)
 - [Testing the Tournament Flow](#testing-the-tournament-flow)
 - [Environment Variables](#environment-variables)
@@ -25,7 +43,7 @@ NextRound is a full-stack esports tournament management platform built to simpli
 - [Future Improvements](#future-improvements)
 - [License](#license)
 
-## Overview
+## 🎯 Overview
 
 NextRound provides two main experiences.
 
@@ -52,17 +70,18 @@ An administrator can:
 - Delete users
 - Access the administration dashboard
 
-## Features
+## ✨ Features
 
-### Tournament Management
+### 🏆 Tournament Management
 
 - Create tournaments
 - Configure title, game, description, dates, maximum players, status, and prize
 - View tournament details
 - Update or delete tournaments according to permissions
 - Start a tournament once the required number of players has been approved
+- Manually schedule generated matches with a date and time
 
-### Player Registration
+### 👥 Player Registration
 
 - Register for an open tournament
 - Cancel a registration
@@ -70,7 +89,7 @@ An administrator can:
 - Tournament capacity is enforced through the approved-player limit
 - Duplicate registration is prevented by a database constraint
 
-### Automatic Tournament Brackets
+### 🧩 Automatic Tournament Brackets
 
 When a tournament starts:
 
@@ -80,7 +99,8 @@ When a tournament starts:
 4. The tournament moves to `in_progress`
 5. Results determine the players who continue to the next round
 6. New rounds are generated automatically
-7. The tournament finishes after the final match
+7. The organizer can manually schedule generated matches
+8. The tournament finishes after the final match
 
 For example, with 4 approved players:
 
@@ -96,7 +116,7 @@ Player C ─────┐            │
 Player D ─────┘
 ```
 
-### Match Results
+### 🥊 Match Results
 
 Organizers can enter results for their tournament matches.
 
@@ -115,7 +135,7 @@ The backend validates that:
 - The winner has the higher score
 - A result cannot be created twice for the same match
 
-### Rankings
+### 📊 Rankings
 
 Player rankings are tracked per game.
 
@@ -128,7 +148,7 @@ Each ranking includes:
 - Defeats
 - Position
 
-### Notifications
+### 🔔 Notifications
 
 The platform supports notifications for events such as registration updates, scheduled matches, and other tournament-related actions.
 
@@ -139,7 +159,7 @@ Users can:
 - Mark all notifications as read
 - Delete notifications
 
-### Authentication & Authorization
+### 🔐 Authentication & Authorization
 
 Authentication is implemented with Laravel Sanctum.
 
@@ -153,9 +173,9 @@ The application uses:
 - Role-based access
 - Protected React routes
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-### Backend
+### ⚙️ Backend
 
 - PHP 8.4
 - Laravel 13
@@ -164,7 +184,7 @@ The application uses:
 - Eloquent ORM
 - REST API
 
-### Frontend
+### ⚛️ Frontend
 
 - React
 - Vite
@@ -173,7 +193,7 @@ The application uses:
 - Axios
 - Lucide React
 
-### Development & Deployment
+### 🚀 Development & Deployment
 
 - Docker
 - Docker Compose
@@ -182,7 +202,7 @@ The application uses:
 - Git / GitHub
 - Docker Hub
 
-## Project Architecture
+## 🏗️ Project Architecture
 
 ```text
                  ┌─────────────────────┐
@@ -213,7 +233,7 @@ The application uses:
 
 The frontend communicates with the Laravel API through Axios.
 
-## Project Structure
+## 📁 Project Structure
 
 ```text
 NextRound/
@@ -252,7 +272,7 @@ NextRound/
 └── README.md
 ```
 
-## Roles
+## 👤 Roles
 
 NextRound intentionally keeps the role system simple.
 
@@ -268,7 +288,7 @@ An administrator manages the platform itself.
 
 Admins can manage users and games through the administration dashboard.
 
-## Tournament Workflow
+## 🔄 Tournament Workflow
 
 The tournament lifecycle is:
 
@@ -298,7 +318,7 @@ Final
 Tournament FINISHED
 ```
 
-### Important capacity rule
+### 🚦 Important capacity rule
 
 `max_players` represents the maximum number of approved players.
 
@@ -312,7 +332,7 @@ The organizer can approve four players. A fifth approval is rejected because the
 
 The tournament cannot start until the number of approved players reaches the configured capacity.
 
-## Authentication
+## 🔑 Authentication
 
 The API uses Laravel Sanctum with bearer tokens.
 
@@ -344,9 +364,9 @@ Authorization: Bearer <token>
 
 The React application stores the authentication token and Axios automatically sends it with protected requests.
 
-## API Overview
+## 🌐 API Overview
 
-### Authentication
+### 🔑 Authentication
 
 ```text
 POST   /api/register
@@ -355,7 +375,7 @@ GET    /api/me
 POST   /api/logout
 ```
 
-### Games
+### 🎮 Games
 
 ```text
 GET    /api/games
@@ -367,7 +387,7 @@ DELETE /api/games/{game}
 
 Game creation, update, and deletion are restricted to administrators.
 
-### Tournaments
+### 🏆 Tournaments
 
 ```text
 GET    /api/tournaments
@@ -378,7 +398,7 @@ DELETE /api/tournaments/{tournament}
 POST   /api/tournaments/{tournament}/start
 ```
 
-### Registrations
+### 👥 Registrations
 
 ```text
 POST   /api/tournaments/{tournament}/register
@@ -387,7 +407,7 @@ GET    /api/tournaments/{tournament}/registrations
 PUT    /api/registrations/{registration}
 ```
 
-### Matches
+### 🥊 Matches
 
 ```text
 GET    /api/matches
@@ -397,7 +417,15 @@ PUT    /api/matches/{match}
 DELETE /api/matches/{match}
 ```
 
-### Results
+### 📅 Match Scheduling
+
+```text
+PUT /api/matches/{match}/schedule
+```
+
+Organizers can manually set or update the date and time of a generated match.
+
+### 🏁 Results
 
 ```text
 GET    /api/results
@@ -407,7 +435,7 @@ PUT    /api/results/{result}
 DELETE /api/results/{result}
 ```
 
-### Rankings
+### 📊 Rankings
 
 ```text
 GET /api/games/{game}/rankings
@@ -415,7 +443,7 @@ GET /api/games/{game}/rankings/{user}
 GET /api/top-players
 ```
 
-### Notifications
+### 🔔 Notifications
 
 ```text
 GET    /api/notifications
@@ -442,7 +470,7 @@ PUT    /api/admin/users/{user}
 DELETE /api/admin/users/{user}
 ```
 
-## Database
+## 🗄️ Database
 
 The main entities are:
 
@@ -500,7 +528,9 @@ rankings
 notifications
 ```
 
-## Frontend Pages
+## 📐 Class Diagram
+
+## 📐 Use case diagram
 
 The main public pages are:
 
@@ -530,11 +560,11 @@ Administrators have:
 
 The application uses React Router to handle navigation and protected routes.
 
-## Docker
+## 🐳 Docker
 
 The project includes Docker support for the complete application.
 
-### Docker services
+### 🐳 Docker services
 
 ```text
 frontend
@@ -598,9 +628,13 @@ http://localhost:8000
 
 MySQL is exposed to the host through the Docker Compose database port configured in the project.
 
-## Local Development
+## 🐳 Docker Hub Images
+https://hub.docker.com/repository/docker/badrbelabrik/nextround-backend
+https://hub.docker.com/repository/docker/badrbelabrik/nextround-frontend/general
 
-### Backend
+## 💻 Local Development
+
+### ⚙️ Backend
 
 ```bash
 cd NextRound-backend
@@ -627,7 +661,7 @@ php artisan db:seed
 php artisan serve
 ```
 
-### Frontend
+### ⚛️ Frontend
 
 ```bash
 cd NextRound-frontend
@@ -646,7 +680,7 @@ Start Vite:
 npm run dev
 ```
 
-## Testing the Tournament Flow
+## 🧪 Testing the Tournament Flow
 
 A simple end-to-end test uses a tournament with 4 players.
 
@@ -689,7 +723,19 @@ The backend:
 - creates the matches
 - changes the tournament status to `in_progress`
 
-### Step 5 — Enter results
+### Step 5 — Schedule matches
+
+After the bracket is generated, the organizer manually selects a date and time for each match.
+
+```text
+Semi-final
+John vs Ahmed
+
+Date: Oct 10, 2026
+Time: 18:00
+```
+
+### Step 6 — Enter results
 
 For every completed match, the organizer submits data such as:
 
@@ -702,7 +748,7 @@ For every completed match, the organizer submits data such as:
 }
 ```
 
-### Step 6 — Continue the tournament
+### Step 7 — Continue the tournament
 
 Winning players are used to generate the next round.
 
@@ -716,9 +762,9 @@ With 4 players:
 1 Winner
 ```
 
-## Environment Variables
+## 🔧 Environment Variables
 
-### Backend
+### ⚙️ Backend
 
 Typical values include:
 
@@ -744,7 +790,7 @@ DB_HOST=db
 DB_PORT=3306
 ```
 
-### Frontend
+### ⚛️ Frontend
 
 ```env
 VITE_API_URL=http://127.0.0.1:8000/api
@@ -756,7 +802,7 @@ For the Docker frontend setup, the API is proxied through Nginx and can use:
 VITE_API_URL=/api
 ```
 
-## Development Workflow
+## 🌿 Development Workflow
 
 Create a feature branch:
 
@@ -772,7 +818,7 @@ git commit -m "Describe the change"
 git push origin feature/feature-name
 ```
 
-## Future Improvements
+## 🚧 Future Improvements
 
 Possible future extensions include:
 
@@ -790,7 +836,11 @@ Possible future extensions include:
 - Round-robin tournaments
 - Administration analytics
 
-## License
+## 📌 Project Status
+
+Current implementation includes tournament management, player registration, automated bracket progression, manual match scheduling, match results, rankings, notifications, game and user administration, and Docker support.
+
+## 📄 License
 
 This project is currently developed as an educational and portfolio project.
 
