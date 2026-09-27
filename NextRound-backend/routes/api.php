@@ -33,6 +33,9 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/games', [GameController::class, 'store']);
     Route::put('/games/{game}', [GameController::class, 'update']);
     Route::delete('/games/{game}', [GameController::class, 'destroy']);
+    //TOURNAMENTS
+    Route::put('/admin/tournaments/{tournament}/approve', [TournamentController::class, 'approve']);
+    Route::get('/admin/tournaments', [TournamentController::class, 'draftTournaments']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -59,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/matches', [TournamentMatchController::class, 'store']);
     Route::put('/matches/{match}', [TournamentMatchController::class, 'update']);
     Route::delete('/matches/{match}', [TournamentMatchController::class, 'destroy']);
+    Route::put('/matches/{match}/schedule', [TournamentMatchController::class, 'updateSchedule']);
     //MATCH-RESULTS
     Route::get('/my-results', [ResultController::class, 'myResults']);
     Route::get('/results/{result}', [ResultController::class, 'show']);

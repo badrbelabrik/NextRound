@@ -8,6 +8,7 @@ import {
     ShieldCheck,
     Zap,
 } from 'lucide-react';
+import Navbar from "../components/Navbar.jsx";
 
 function About() {
     const features = [
@@ -77,7 +78,9 @@ function About() {
     ];
 
     return (
+
         <div className="min-h-screen bg-[#0B0F19] text-white">
+            <Navbar />
             {/* Hero */}
             <section className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.18),transparent_40%)]" />

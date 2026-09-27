@@ -1,6 +1,6 @@
 import { CalendarDays, Users } from 'lucide-react';
 import {useNavigate} from "react-router-dom";
-
+import imageHelper from "../services/imageHelper.js";
 function TournamentCard({
     id,
     image,
@@ -26,7 +26,7 @@ function TournamentCard({
             {/* Image */}
             <div className="relative h-44 overflow-hidden">
                 <img
-                    src={image}
+                    src={imageHelper(image)}
                     alt={game}
                     className="h-full w-full object-cover transition duration-500 hover:scale-105"
                 />

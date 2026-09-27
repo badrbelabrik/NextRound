@@ -11,12 +11,14 @@ import Navbar from '../components/Navbar';
 import TournamentCard from '../components/TournamentCard';
 import PlayerCard from '../components/PlayerCard';
 import api from '../services/api';
+import {useNavigate} from "react-router-dom";
 
 
 function Home() {
     const [tournaments, setTournaments] = useState([]);
     const [players, setPlayers] = useState([]);
     const [games, setGames] = useState([])
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadHomeData = async () => {
@@ -49,7 +51,7 @@ function Home() {
                                 tournament.id ??
                                 null,
                             image:
-                                tournament.game?.image ??
+                                tournament.image ??
                                 null,
 
                             game:
@@ -133,37 +135,53 @@ function Home() {
 
             {/* HERO */}
             <section className="relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_40%,rgba(124,58,237,0.20),transparent_35%)]" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_70%,rgba(59,130,246,0.08),transparent_30%)]" />
+                {/* Hero image */}
+                <img
+                    src="/images/hero-gaming.png"
+                    alt="NextRound esports"
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                />
 
-                <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-6 py-24 lg:grid-cols-2">
+                {/* Dark overlay for readability */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F19] via-[#0B0F19]/90 to-[#0B0F19]/20" />
 
-                    <div>
+                {/* Purple atmosphere */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_40%,rgba(124,58,237,0.18),transparent_35%)]" />
+
+                <div className="relative mx-auto flex min-h-[400px] max-w-7xl items-center px-6 py-4 lg:px-8">
+
+                    <div className="max-w-2xl">
 
                         <p className="mb-5 text-sm font-bold uppercase tracking-[0.25em] text-[#8B5CF6]">
                             Play · Organize · Compete
                         </p>
 
-                        <h1 className="max-w-2xl text-5xl font-black leading-tight tracking-tight md:text-6xl">
+                        <h1 className="text-5xl font-black leading-tight tracking-tight md:text-6xl">
                             THE NEXT MATCH
                             <span className="block text-[#8B5CF6]">
-                                STARTS HERE
-                            </span>
+                    STARTS HERE
+                </span>
                         </h1>
 
-                        <p className="mt-6 max-w-xl text-lg leading-8 text-gray-400">
+                        <p className="mt-6 max-w-xl text-lg leading-8 text-gray-300">
                             Join tournaments, challenge players, create your own
                             events, and become part of a growing esports community.
                         </p>
 
                         <div className="mt-8 flex flex-wrap gap-4">
 
-                            <button className="flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
+                            <button onClick={() => navigate(`/tournaments`)}
+                                    className="flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
                                 <Trophy size={18} />
                                 Explore Tournaments
                             </button>
 
-                            <button className="rounded-lg border border-[#7C3AED] px-6 py-3.5 font-semibold text-white transition hover:bg-[#7C3AED]/10">
+                            <button     onClick={() =>
+                                navigate('/userdashboard', {
+                                    state: { activeTab: 'tournaments' },
+                                })
+                            }
+                                className="rounded-lg border border-[#7C3AED] px-6 py-3.5 font-semibold text-white transition hover:bg-[#7C3AED]/10">
                                 Create Tournament
                             </button>
 
@@ -178,12 +196,13 @@ function Home() {
                                         className="text-[#8B5CF6]"
                                         size={20}
                                     />
+
                                     <span className="text-2xl font-bold">
-                                        {players.length}
-                                    </span>
+                            {players.length}
+                        </span>
                                 </div>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-gray-400">
                                     Players
                                 </p>
                             </div>
@@ -196,11 +215,11 @@ function Home() {
                                     />
 
                                     <span className="text-2xl font-bold">
-                                        {tournaments.length}
-                                    </span>
+                            {tournaments.length}
+                        </span>
                                 </div>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-gray-400">
                                     Tournaments
                                 </p>
                             </div>
@@ -213,54 +232,16 @@ function Home() {
                                     />
 
                                     <span className="text-2xl font-bold">
-                                        {games.length}
-                                    </span>
+                            {games.length}
+                        </span>
                                 </div>
 
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-gray-400">
                                     Games
                                 </p>
                             </div>
 
                         </div>
-                    </div>
-
-                    {/* Hero visual */}
-                    <div className="relative hidden min-h-[520px] lg:block">
-
-                        <div className="absolute right-0 top-10 h-[430px] w-[430px] rounded-full bg-[#7C3AED]/20 blur-[100px]" />
-
-                        <div className="absolute bottom-10 right-10 h-[380px] w-[380px] rounded-3xl border border-[#7C3AED]/20 bg-gradient-to-br from-[#1A1032] via-[#111827] to-[#0B0F19] shadow-2xl shadow-purple-950/40">
-
-                            <div className="absolute left-8 top-8 flex items-center gap-3">
-                                <Zap
-                                    className="text-[#8B5CF6]"
-                                    size={28}
-                                />
-
-                                <span className="text-lg font-bold">
-                                    NextRound
-                                </span>
-                            </div>
-
-                            <div className="absolute bottom-12 left-8">
-
-                                <p className="text-sm uppercase tracking-widest text-gray-500">
-                                    Competitive Gaming
-                                </p>
-
-                                <p className="mt-2 text-4xl font-black">
-                                    COMPETE.
-                                </p>
-
-                                <p className="text-4xl font-black text-[#8B5CF6]">
-                                    DOMINATE.
-                                </p>
-
-                            </div>
-
-                        </div>
-
                     </div>
                 </div>
             </section>
@@ -285,7 +266,8 @@ function Home() {
                             </p>
                         </div>
 
-                        <button className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex">
+                        <button onClick={() => navigate("/tournaments")}
+                            className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex cursor-pointer">
                             View all tournaments
                             <ArrowRight size={16} />
                         </button>
@@ -325,7 +307,8 @@ function Home() {
                             </p>
                         </div>
 
-                        <button className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex">
+                        <button onClick={() => navigate("/rankings")}
+                            className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex cursor-pointer">
                             View full rankings
                             <ArrowRight size={16} />
                         </button>
@@ -364,7 +347,12 @@ function Home() {
                             Bring your community together and organize epic competitions.
                         </p>
 
-                        <button className="mt-7 flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
+                        <button     onClick={() =>
+                            navigate('/userdashboard', {
+                                state: { activeTab: 'tournaments' },
+                            })
+                        }
+                            className="mt-7 flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
                             <Trophy size={18} />
                             Create Tournament
                         </button>

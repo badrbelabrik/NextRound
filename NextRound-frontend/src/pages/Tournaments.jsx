@@ -36,7 +36,7 @@ function Tournaments() {
                 setTournaments(
                     tournamentsData.map((tournament) => ({
                         id: tournament.id,
-                        image: tournament.game?.image ?? null,
+                        image: tournament.image ?? null,
                         game: tournament.game?.name ?? 'Unknown game',
                         title: tournament.title,
                         organizer:

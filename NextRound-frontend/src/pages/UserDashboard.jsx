@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {useNavigate} from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import {
     CalendarDays,
     Gamepad2,
@@ -10,7 +11,6 @@ import {
     Plus,
     ChevronRight,
 } from 'lucide-react';
-
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -18,8 +18,10 @@ import api from '../services/api';
 
 function UserDashboard() {
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-    const [activeTab, setActiveTab] = useState('activity');
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'activity');
 
     const [upcomingMatches, setUpcomingMatches] = useState([]);
     const [recentTournaments, setRecentTournaments] = useState([]);
@@ -27,6 +29,12 @@ function UserDashboard() {
     const [myTournaments, setMyTournaments] = useState([]);
     const [registrations, setRegistrations] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         if (!user) {
@@ -279,6 +287,7 @@ function UserDashboard() {
                         </div>
 
                         <button
+                            onClick={() => navigate(`/profile`)}
                             type="button"
                             className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 text-gray-400 transition hover:bg-white/5 hover:text-white"
                         >
@@ -496,10 +505,10 @@ function CreateTournamentModal({
         title: '',
         game_id: '',
         description: '',
+        image: null,
         start_date: '',
         end_date: '',
         max_players: '',
-        status: 'draft',
         prize: '',
     });
 
@@ -555,18 +564,28 @@ function CreateTournamentModal({
         setValidationErrors({});
 
         try {
-            await api.post('/tournaments', {
-                title: formData.title,
-                game_id: formData.game_id,
-                description: formData.description,
-                start_date: formData.start_date,
-                end_date:
-                    formData.end_date || null,
-                max_players: Number(
-                    formData.max_players
-                ),
-                status: formData.status,
-                prize: formData.prize || null,
+            const payload = new FormData();
+
+            payload.append('title', formData.title);
+            payload.append('game_id', formData.game_id);
+            payload.append('description', formData.description || '');
+            payload.append('start_date', formData.start_date);
+            payload.append('max_players', formData.max_players);
+            payload.append('status', formData.status);
+            payload.append('prize', formData.prize || '');
+
+            if (formData.end_date) {
+                payload.append('end_date', formData.end_date);
+            }
+
+            if (formData.image instanceof File) {
+                payload.append('image', formData.image);
+            }
+
+            await api.post('/tournaments', payload, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
 
             onCreated();
@@ -575,8 +594,7 @@ function CreateTournamentModal({
         } catch (error) {
             console.error(
                 'ERROR /tournaments POST:',
-                error.response?.data ||
-                error.message
+                error.response?.data || error.message
             );
 
             if (error.response?.status === 422) {
@@ -760,6 +778,34 @@ function CreateTournamentModal({
                                 </p>
                             )}
                         </div>
+                        {/* image */}
+                        <div>
+                            <label className="mb-2 block text-sm text-gray-400">
+                                Tournament image
+                            </label>
+
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                onChange={(event) =>
+                                    setFormData((previous) => ({
+                                        ...previous,
+                                        image: event.target.files[0] || null,
+                                    }))
+                                }
+                                className="w-full rounded-xl border border-white/10 bg-[#0B0F19] px-4 py-3 text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-purple-600 file:px-4 file:py-2 file:font-medium file:text-white hover:file:bg-purple-500"
+                            />
+
+                            <p className="mt-2 text-xs text-gray-500">
+                                PNG, JPG, JPEG or WEBP. Maximum size: 5 MB.
+                            </p>
+
+                            {formData.image instanceof File && (
+                                <p className="mt-2 text-sm text-purple-400">
+                                    Selected: {formData.image.name}
+                                </p>
+                            )}
+                        </div>
 
                         {/* Dates */}
                         <div className="grid gap-5 sm:grid-cols-2">
@@ -873,44 +919,6 @@ function CreateTournamentModal({
                                         {
                                             validationErrors
                                                 .max_players[0]
-                                        }
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="status"
-                                    className="mb-2 block text-sm font-medium text-gray-300"
-                                >
-                                    Status
-                                </label>
-
-                                <select
-                                    id="status"
-                                    name="status"
-                                    value={
-                                        formData.status
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    className="w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
-                                >
-                                    <option value="draft">
-                                        Draft
-                                    </option>
-
-                                    <option value="open">
-                                        Open
-                                    </option>
-                                </select>
-
-                                {validationErrors.status && (
-                                    <p className="mt-1 text-sm text-red-400">
-                                        {
-                                            validationErrors
-                                                .status[0]
                                         }
                                     </p>
                                 )}

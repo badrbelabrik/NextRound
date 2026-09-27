@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Registration;
 use App\Models\Tournament;
 use App\Models\TournamentMatch;
+use App\Models\User;
 use App\Services\MatchService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
@@ -27,6 +30,7 @@ class TournamentController extends Controller
                     $query->where('status', 'approved');
                 },
             ])
+            ->where('status', '!=', 'draft')
             ->latest()
             ->get();
 
@@ -93,25 +97,54 @@ class TournamentController extends Controller
     /**
      * Store a newly created tournament.
      */
-    public function store(Request $request)
+    public function store(Request $request, NotificationService $notificationService)
     {
         Gate::authorize('create', Tournament::class);
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'game_id' => 'required|exists:games,id',
-            'description' => 'nullable|string',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'max_players' => 'required|integer|min:2',
-            'prize' => 'nullable|string|max:255',
+            'title' => ['required', 'string', 'max:255'],
+            'game_id' => ['required', 'exists:games,id'],
+            'description' => ['nullable', 'string'],
+
+            'image' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
+
+            'start_date' => ['required', 'date'],
+            'end_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:start_date',
+            ],
+            'max_players' => [
+                'required',
+                'integer',
+                'min:2',
+            ],
+            'prize' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
         ]);
+
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request
+                ->file('image')
+                ->store('tournaments', 'public');
+        } else {
+            $validated['image'] = null;
+        }
 
         $tournament = Tournament::create([
             'title' => $validated['title'],
             'game_id' => $validated['game_id'],
             'user_id' => $request->user()->id,
             'description' => $validated['description'] ?? null,
+            'image' => $validated['image'],
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'] ?? null,
             'max_players' => $validated['max_players'],
@@ -119,9 +152,20 @@ class TournamentController extends Controller
             'prize' => $validated['prize'] ?? null,
         ]);
 
+        // notify all admins
+        $admins = User::where('role', 'admin')->get();
+
+        foreach ($admins as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'title' => 'New tournament awaiting approval',
+                'message' => "{$request->user()->name} created a new tournament \"{$tournament->title}\". Please review it in the admin dashboard.",
+                'is_read' => false,
+            ]);
+        }
         return response()->json([
             'message' => 'Tournament created successfully.',
-            'tournament' => $tournament
+            'tournament' => $tournament,
         ], 201);
     }
 
@@ -189,4 +233,42 @@ class TournamentController extends Controller
 
         return response()->json($tournaments);
     }
+
+    public function approve(Tournament $tournament)
+    {
+        if ($tournament->status !== 'draft') {
+            return response()->json([
+                'message' => 'Only draft tournaments can be approved.',
+            ], 422);
+        }
+
+        $tournament->update([
+            'status' => 'open',
+        ]);
+
+        return response()->json([
+            'message' => 'Tournament approved successfully.',
+            'tournament' => $tournament->fresh([
+                'game',
+                'user',
+            ]),
+        ]);
+    }
+
+    public function draftTournaments()
+    {
+        $tournaments = Tournament::with([
+            'game',
+            'user',
+        ])
+            ->where('status', 'draft')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'tournaments' => $tournaments,
+        ]);
+    }
+
+
 }

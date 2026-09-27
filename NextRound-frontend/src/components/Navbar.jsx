@@ -434,36 +434,40 @@ useEffect(() => {
                                 {isProfileOpen && (
                                     <div className="absolute right-0 top-12 z-[100] w-48 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
 
+                                        {/* Profile */}
                                         <Link
                                             to="/profile"
-                                            onClick={() =>
-                                                setIsProfileOpen(
-                                                    false
-                                                )
-                                            }
+                                            onClick={() => setIsProfileOpen(false)}
                                             className="block rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
                                         >
                                             Profile
                                         </Link>
 
+                                        {/* Activities */}
                                         <Link
-                                            to="/dashboard"
-                                            onClick={() =>
-                                                setIsProfileOpen(
-                                                    false
-                                                )
-                                            }
+                                            to="/userdashboard"
+                                            onClick={() => setIsProfileOpen(false)}
                                             className="block rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
                                         >
-                                            Dashboard
+                                            Activities
                                         </Link>
+
+                                        {/* Dashboard - Admin only */}
+                                        {user.role === 'admin' && (
+                                            <Link
+                                                to="/admin/dashboard"
+                                                onClick={() => setIsProfileOpen(false)}
+                                                className="block rounded-lg px-3 py-2 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
+                                            >
+                                                Dashboard
+                                            </Link>
+                                        )}
 
                                         <div className="my-1 border-t border-white/10" />
 
+                                        {/* Logout */}
                                         <button
-                                            onClick={
-                                                handleLogout
-                                            }
+                                            onClick={handleLogout}
                                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/10"
                                         >
                                             <LogOut size={16} />
@@ -472,6 +476,7 @@ useEffect(() => {
 
                                     </div>
                                 )}
+
                             </div>
 
                         </>
