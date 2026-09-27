@@ -153,4 +153,30 @@ class TournamentMatchController extends Controller
 
         return response()->json($matches);
     }
+
+    public function updateSchedule(Request $request, TournamentMatch $match)
+    {
+        Gate::authorize('update', $match);
+
+        $validated = $request->validate([
+            'scheduled_at' => [
+                'required',
+                'date',
+            ],
+        ]);
+
+        $match->update([
+            'scheduled_at' => $validated['scheduled_at'],
+        ]);
+
+        return response()->json([
+            'message' => 'Match schedule updated successfully.',
+            'match' => $match->fresh([
+                'firstPlayer',
+                'secondPlayer',
+                'tournament',
+                'result',
+            ]),
+        ]);
+    }
 }

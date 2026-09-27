@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {useNavigate} from "react-router-dom";
+import { useLocation } from 'react-router-dom';
 import {
     CalendarDays,
     Gamepad2,
@@ -18,7 +19,9 @@ import api from '../services/api';
 function UserDashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('activity');
+    const location = useLocation();
+
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'activity');
 
     const [upcomingMatches, setUpcomingMatches] = useState([]);
     const [recentTournaments, setRecentTournaments] = useState([]);
@@ -26,6 +29,12 @@ function UserDashboard() {
     const [myTournaments, setMyTournaments] = useState([]);
     const [registrations, setRegistrations] = useState([]);
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         if (!user) {
@@ -500,7 +509,6 @@ function CreateTournamentModal({
         start_date: '',
         end_date: '',
         max_players: '',
-        status: 'draft',
         prize: '',
     });
 
@@ -911,44 +919,6 @@ function CreateTournamentModal({
                                         {
                                             validationErrors
                                                 .max_players[0]
-                                        }
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="status"
-                                    className="mb-2 block text-sm font-medium text-gray-300"
-                                >
-                                    Status
-                                </label>
-
-                                <select
-                                    id="status"
-                                    name="status"
-                                    value={
-                                        formData.status
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    className="w-full rounded-lg border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition focus:border-[#7C3AED]"
-                                >
-                                    <option value="draft">
-                                        Draft
-                                    </option>
-
-                                    <option value="open">
-                                        Open
-                                    </option>
-                                </select>
-
-                                {validationErrors.status && (
-                                    <p className="mt-1 text-sm text-red-400">
-                                        {
-                                            validationErrors
-                                                .status[0]
                                         }
                                     </p>
                                 )}

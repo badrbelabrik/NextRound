@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CalendarDays, Gamepad2, Trophy, Users, Clock, CheckCircle, CircleAlert} from 'lucide-react';
+import {
+    CalendarDays,
+    Gamepad2,
+    Trophy,
+    Users,
+    Clock,
+    CheckCircle,
+    CircleAlert,
+} from 'lucide-react';
 
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +31,34 @@ function formatTime(date) {
         hour: '2-digit',
         minute: '2-digit',
     });
+}
+
+function formatDateTimeLocal(date) {
+    if (!date) {
+        return '';
+    }
+
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return '';
+    }
+
+    const year = parsedDate.getFullYear();
+    const month = String(
+        parsedDate.getMonth() + 1
+    ).padStart(2, '0');
+    const day = String(
+        parsedDate.getDate()
+    ).padStart(2, '0');
+    const hours = String(
+        parsedDate.getHours()
+    ).padStart(2, '0');
+    const minutes = String(
+        parsedDate.getMinutes()
+    ).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function formatStatus(status) {
@@ -51,26 +87,41 @@ function getRoundOrder(round) {
 
 function TournamentDetails() {
     const [registrations, setRegistrations] = useState([]);
-    const [loadingRegistrations, setLoadingRegistrations] = useState(false);
-    const [updatingRegistration, setUpdatingRegistration] = useState(null);
+    const [loadingRegistrations, setLoadingRegistrations] =
+        useState(false);
+    const [updatingRegistration, setUpdatingRegistration] =
+        useState(null);
+
     const { id } = useParams();
     const { user } = useAuth();
 
     const [tournament, setTournament] = useState(null);
-    const [startingTournament, setStartingTournament] = useState(false);
+    const [startingTournament, setStartingTournament] =
+        useState(false);
     const [matches, setMatches] = useState([]);
-    const [myRegistration, setMyRegistration] = useState(null);
+    const [myRegistration, setMyRegistration] =
+        useState(null);
 
-    const [activeSection, setActiveSection] = useState('overview');
+    const [activeSection, setActiveSection] =
+        useState('overview');
 
     const [loading, setLoading] = useState(true);
-    const [registering, setRegistering] = useState(false);
-    const [savingResult, setSavingResult] = useState(false);
+    const [registering, setRegistering] =
+        useState(false);
+    const [savingResult, setSavingResult] =
+        useState(false);
 
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
 
-    const [scoreMatch, setScoreMatch] = useState(null);
+    const [scoreMatch, setScoreMatch] =
+        useState(null);
+
+    const [savingSchedule, setSavingSchedule] =
+        useState(null);
+
+    const [scheduleValues, setScheduleValues] =
+        useState({});
 
     const [scoreForm, setScoreForm] = useState({
         score_player1: '',
@@ -78,56 +129,56 @@ function TournamentDetails() {
     });
 
     const handleStartTournament = async () => {
-    const confirmed = window.confirm(
-        'Are you sure you want to start this tournament? The bracket will be generated from the approved players.'
-    );
-
-    if (!confirmed) {
-        return;
-    }
-
-    try {
-        setStartingTournament(true);
-        setMessage('');
-        setError('');
-
-        const response = await api.post(
-            `/tournaments/${id}/start`
+        const confirmed = window.confirm(
+            'Are you sure you want to start this tournament? The bracket will be generated from the approved players.'
         );
 
-        if (response.data.tournament) {
-            setTournament(
-                response.data.tournament
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setStartingTournament(true);
+            setMessage('');
+            setError('');
+
+            const response = await api.post(
+                `/tournaments/${id}/start`
             );
-        }
 
-        if (response.data.matches) {
-            setMatches(response.data.matches);
-        } else {
-            await loadMatches();
-        }
+            if (response.data.tournament) {
+                setTournament(
+                    response.data.tournament
+                );
+            }
 
-        setMessage(
-            response.data.message ||
+            if (response.data.matches) {
+                setMatches(response.data.matches);
+            } else {
+                await loadMatches();
+            }
+
+            setMessage(
+                response.data.message ||
                 'Tournament started successfully.'
-        );
+            );
 
-        setActiveSection('brackets');
-    } catch (error) {
-        console.error(
-            'Error starting tournament:',
-            error.response?.data ||
+            setActiveSection('brackets');
+        } catch (error) {
+            console.error(
+                'Error starting tournament:',
+                error.response?.data ||
                 error.message
-        );
+            );
 
-        setError(
-            error.response?.data?.message ||
+            setError(
+                error.response?.data?.message ||
                 'Unable to start the tournament.'
-        );
-    } finally {
-        setStartingTournament(false);
-    }
-};
+            );
+        } finally {
+            setStartingTournament(false);
+        }
+    };
 
     const loadRegistrations = async () => {
         if (!user || !tournament) {
@@ -136,7 +187,8 @@ function TournamentDetails() {
         }
 
         const isCurrentUserOrganizer =
-            Number(user.id) === Number(tournament.user_id);
+            Number(user.id) ===
+            Number(tournament.user_id);
 
         if (!isCurrentUserOrganizer) {
             setRegistrations([]);
@@ -155,11 +207,14 @@ function TournamentDetails() {
                 response.data ??
                 [];
 
-            setRegistrations(registrationsData);
+            setRegistrations(
+                registrationsData
+            );
         } catch (error) {
             console.error(
                 'Error loading registrations:',
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setRegistrations([]);
@@ -167,12 +222,15 @@ function TournamentDetails() {
             setLoadingRegistrations(false);
         }
     };
+
     const loadMatches = async () => {
-        const [matchesResponse, resultsResponse] =
-            await Promise.all([
-                api.get('/matches'),
-                api.get('/results'),
-            ]);
+        const [
+            matchesResponse,
+            resultsResponse,
+        ] = await Promise.all([
+            api.get('/matches'),
+            api.get('/results'),
+        ]);
 
         const matchesData =
             matchesResponse.data.matches ?? [];
@@ -182,42 +240,52 @@ function TournamentDetails() {
             resultsResponse.data ??
             [];
 
-        const tournamentMatches = matchesData
-            .filter(
-                (match) =>
-                    Number(match.tournament_id) === Number(id)
-            )
-            .map((match) => {
-                const result = resultsData.find(
-                    (item) =>
-                        Number(item.match_id) ===
-                        Number(match.id)
-                );
+        const tournamentMatches =
+            matchesData
+                .filter(
+                    (match) =>
+                        Number(
+                            match.tournament_id
+                        ) === Number(id)
+                )
+                .map((match) => {
+                    const result =
+                        resultsData.find(
+                            (item) =>
+                                Number(
+                                    item.match_id
+                                ) === Number(match.id)
+                        );
 
-                return {
-                    ...match,
-                    result:
-                        result ??
-                        match.result ??
-                        null,
-                };
-            });
+                    return {
+                        ...match,
+                        result:
+                            result ??
+                            match.result ??
+                            null,
+                    };
+                });
 
-        setMatches(tournamentMatches);
+        setMatches(
+            tournamentMatches
+        );
 
         return tournamentMatches;
     };
 
     const loadTournament = async () => {
-        const tournamentResponse = await api.get(
-            `/tournaments/${id}`
-        );
+        const tournamentResponse =
+            await api.get(
+                `/tournaments/${id}`
+            );
 
         const tournamentData =
             tournamentResponse.data.tournament ??
             tournamentResponse.data;
 
-        setTournament(tournamentData);
+        setTournament(
+            tournamentData
+        );
 
         return tournamentData;
     };
@@ -230,22 +298,30 @@ function TournamentDetails() {
 
         try {
             const registrationsResponse =
-                await api.get('/my-registrations');
+                await api.get(
+                    '/my-registrations'
+                );
 
             const registrations =
-                registrationsResponse.data ?? [];
+                registrationsResponse.data ??
+                [];
 
-            const registration = registrations.find(
-                (item) =>
-                    Number(item.tournament_id) ===
-                    Number(id)
+            const registration =
+                registrations.find(
+                    (item) =>
+                        Number(
+                            item.tournament_id
+                        ) === Number(id)
+                );
+
+            setMyRegistration(
+                registration ?? null
             );
-
-            setMyRegistration(registration ?? null);
         } catch (error) {
             console.error(
                 'Error loading registration:',
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setMyRegistration(null);
@@ -268,7 +344,9 @@ function TournamentDetails() {
                 if (
                     user &&
                     Number(user.id) ===
-                    Number(tournamentData.user_id)
+                    Number(
+                        tournamentData.user_id
+                    )
                 ) {
                     await loadRegistrations();
                 }
@@ -290,14 +368,18 @@ function TournamentDetails() {
 
         loadPage();
     }, [id, user]);
-    
+
     const handleRegistrationStatus = async (
         registrationId,
         status
     ) => {
         try {
-            setUpdatingRegistration(registrationId);
+            setUpdatingRegistration(
+                registrationId
+            );
+
             setMessage('');
+            setError('');
 
             const response = await api.put(
                 `/registrations/${registrationId}`,
@@ -310,13 +392,19 @@ function TournamentDetails() {
                 response.data.registration ??
                 response.data;
 
-            setRegistrations((previous) =>
-                previous.map((registration) =>
-                    Number(registration.id) ===
-                    Number(registrationId)
-                        ? updatedRegistration
-                        : registration
-                )
+            setRegistrations(
+                (previous) =>
+                    previous.map(
+                        (registration) =>
+                            Number(
+                                registration.id
+                            ) ===
+                            Number(
+                                registrationId
+                            )
+                                ? updatedRegistration
+                                : registration
+                    )
             );
 
             setMessage(
@@ -339,10 +427,12 @@ function TournamentDetails() {
             setUpdatingRegistration(null);
         }
     };
+
     const isOrganizer =
         user &&
         tournament &&
-        Number(user.id) === Number(tournament.user_id);
+        Number(user.id) ===
+        Number(tournament.user_id);
 
     const canRegister =
         user &&
@@ -353,12 +443,14 @@ function TournamentDetails() {
     const canCancel =
         user &&
         myRegistration &&
-        myRegistration.status === 'pending';
+        myRegistration.status ===
+        'pending';
 
     const handleRegister = async () => {
         try {
             setRegistering(true);
             setMessage('');
+            setError('');
 
             const response = await api.post(
                 `/tournaments/${id}/register`
@@ -375,7 +467,8 @@ function TournamentDetails() {
         } catch (error) {
             console.error(
                 'Registration error:',
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setMessage(
@@ -391,6 +484,7 @@ function TournamentDetails() {
         try {
             setRegistering(true);
             setMessage('');
+            setError('');
 
             await api.delete(
                 `/tournaments/${id}/register`
@@ -404,7 +498,8 @@ function TournamentDetails() {
         } catch (error) {
             console.error(
                 'Cancel registration error:',
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setMessage(
@@ -413,6 +508,93 @@ function TournamentDetails() {
             );
         } finally {
             setRegistering(false);
+        }
+    };
+
+    const handleScheduleChange = (
+        matchId,
+        value
+    ) => {
+        setScheduleValues(
+            (previous) => ({
+                ...previous,
+                [matchId]: value,
+            })
+        );
+    };
+
+    const handleSaveSchedule = async (
+        matchId
+    ) => {
+        const scheduledAt =
+            scheduleValues[matchId];
+
+        if (!scheduledAt) {
+            setError(
+                'Please select a date and time.'
+            );
+            setMessage('');
+            return;
+        }
+
+        try {
+            setSavingSchedule(matchId);
+            setError('');
+            setMessage('');
+
+            const response =
+                await api.put(
+                    `/matches/${matchId}/schedule`,
+                    {
+                        scheduled_at:
+                        scheduledAt,
+                    }
+                );
+
+            const updatedMatch =
+                response.data.match;
+
+            setMatches(
+                (previous) =>
+                    previous.map(
+                        (match) =>
+                            Number(match.id) ===
+                            Number(matchId)
+                                ? {
+                                    ...match,
+                                    scheduled_at:
+                                    updatedMatch.scheduled_at,
+                                }
+                                : match
+                    )
+            );
+
+            setScheduleValues(
+                (previous) => ({
+                    ...previous,
+                    [matchId]:
+                        formatDateTimeLocal(
+                            updatedMatch.scheduled_at
+                        ),
+                })
+            );
+
+            setMessage(
+                'Match schedule updated successfully.'
+            );
+        } catch (error) {
+            console.error(
+                'Error updating match schedule:',
+                error.response?.data ||
+                error.message
+            );
+
+            setError(
+                error.response?.data?.message ||
+                'Unable to update the match schedule.'
+            );
+        } finally {
+            setSavingSchedule(null);
         }
     };
 
@@ -425,6 +607,7 @@ function TournamentDetails() {
         });
 
         setMessage('');
+        setError('');
     };
 
     const closeScoreModal = () => {
@@ -436,7 +619,9 @@ function TournamentDetails() {
         });
     };
 
-    const handleScoreSubmit = async (event) => {
+    const handleScoreSubmit = async (
+        event
+    ) => {
         event.preventDefault();
 
         if (!scoreMatch) {
@@ -447,7 +632,10 @@ function TournamentDetails() {
             scoreForm.score_player1 === '' ||
             scoreForm.score_player2 === ''
         ) {
-            setMessage('Please enter both scores.');
+            setMessage(
+                'Please enter both scores.'
+            );
+            setError('');
             return;
         }
 
@@ -463,17 +651,26 @@ function TournamentDetails() {
             !Number.isInteger(score1) ||
             !Number.isInteger(score2)
         ) {
-            setMessage('Scores must be whole numbers.');
+            setMessage(
+                'Scores must be whole numbers.'
+            );
+            setError('');
             return;
         }
 
         if (score1 < 0 || score2 < 0) {
-            setMessage('Scores cannot be negative.');
+            setMessage(
+                'Scores cannot be negative.'
+            );
+            setError('');
             return;
         }
 
         if (score1 === score2) {
-            setMessage('A match cannot end in a draw.');
+            setMessage(
+                'A match cannot end in a draw.'
+            );
+            setError('');
             return;
         }
 
@@ -486,15 +683,18 @@ function TournamentDetails() {
             setMessage(
                 'Both players must be available before entering a result.'
             );
+            setError('');
             return;
         }
 
         try {
             setSavingResult(true);
             setMessage('');
+            setError('');
 
             await api.post('/results', {
-                match_id: scoreMatch.id,
+                match_id:
+                scoreMatch.id,
                 score_player1: score1,
                 score_player2: score2,
                 winner_id: winnerId,
@@ -509,11 +709,14 @@ function TournamentDetails() {
                 'Match result saved successfully.'
             );
 
-            setActiveSection('matches');
+            setActiveSection(
+                'matches'
+            );
         } catch (error) {
             console.error(
                 'Error saving result:',
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
             setMessage(
@@ -537,13 +740,25 @@ function TournamentDetails() {
         );
     }
 
-    if (error || !tournament) {
+    if (error && !tournament) {
         return (
             <div className="min-h-screen bg-[#0B0F19] text-white">
                 <Navbar />
 
                 <div className="flex min-h-[70vh] items-center justify-center text-red-400">
-                    {error || 'Tournament not found.'}
+                    {error}
+                </div>
+            </div>
+        );
+    }
+
+    if (!tournament) {
+        return (
+            <div className="min-h-screen bg-[#0B0F19] text-white">
+                <Navbar />
+
+                <div className="flex min-h-[70vh] items-center justify-center text-red-400">
+                    Tournament not found.
                 </div>
             </div>
         );
@@ -551,7 +766,9 @@ function TournamentDetails() {
 
     const bracketRounds = [
         ...new Set(
-            matches.map((match) => match.round)
+            matches.map(
+                (match) => match.round
+            )
         ),
     ].sort(
         (a, b) =>
@@ -560,7 +777,8 @@ function TournamentDetails() {
     );
 
     const approvedPlayers =
-        tournament.approved_registrations_count ?? null;
+        tournament.approved_registrations_count ??
+        null;
 
     return (
         <div className="min-h-screen bg-[#0B0F19] text-white">
@@ -578,8 +796,12 @@ function TournamentDetails() {
 
                         {tournament.game?.image ? (
                             <img
-                                src={tournament.game.image}
-                                alt={tournament.game.name}
+                                src={
+                                    tournament.game.image
+                                }
+                                alt={
+                                    tournament.game.name
+                                }
                                 className="h-full w-full object-cover opacity-40"
                             />
                         ) : (
@@ -678,7 +900,8 @@ function TournamentDetails() {
                                 </p>
 
                                 <p className="font-medium">
-                                    {approvedPlayers !== null
+                                    {approvedPlayers !==
+                                    null
                                         ? `${approvedPlayers} / ${tournament.max_players}`
                                         : `${tournament.max_players} max`}
                                 </p>
@@ -720,7 +943,8 @@ function TournamentDetails() {
                                 )
                             }
                             className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
-                                activeSection === 'overview'
+                                activeSection ===
+                                'overview'
                                     ? 'border-purple-500 text-white'
                                     : 'border-transparent text-gray-400 hover:text-white'
                             }`}
@@ -735,7 +959,8 @@ function TournamentDetails() {
                                 )
                             }
                             className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
-                                activeSection === 'brackets'
+                                activeSection ===
+                                'brackets'
                                     ? 'border-purple-500 text-white'
                                     : 'border-transparent text-gray-400 hover:text-white'
                             }`}
@@ -750,27 +975,32 @@ function TournamentDetails() {
                                 )
                             }
                             className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
-                                activeSection === 'matches'
+                                activeSection ===
+                                'matches'
                                     ? 'border-purple-500 text-white'
                                     : 'border-transparent text-gray-400 hover:text-white'
                             }`}
                         >
                             Matches
                         </button>
-                        {isOrganizer && <button
-                            onClick={() =>
-                                setActiveSection(
+
+                        {isOrganizer && (
+                            <button
+                                onClick={() =>
+                                    setActiveSection(
+                                        'registrations'
+                                    )
+                                }
+                                className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
+                                    activeSection ===
                                     'registrations'
-                                )
-                            }
-                            className={`border-b-2 px-2 pb-4 text-sm font-medium transition ${
-                                activeSection === 'registrations'
-                                    ? 'border-purple-500 text-white'
-                                    : 'border-transparent text-gray-400 hover:text-white'
-                            }`}
-                        >
-                            Registrations
-                        </button>}
+                                        ? 'border-purple-500 text-white'
+                                        : 'border-transparent text-gray-400 hover:text-white'
+                                }`}
+                            >
+                                Registrations
+                            </button>
+                        )}
 
                     </div>
                 </div>
@@ -781,43 +1011,51 @@ function TournamentDetails() {
 
                 {activeSection === 'overview' && (
                     <section className="mt-8 grid gap-8 lg:grid-cols-3">
-                         {isOrganizer &&
-            tournament.status === 'open' &&
-            matches.length === 0 && (
-                <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6">
 
-                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                        {isOrganizer &&
+                            tournament.status ===
+                            'open' &&
+                            matches.length === 0 && (
+                                <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6 lg:col-span-3">
 
-                        <div>
-                            <h2 className="text-xl font-bold">
-                                Ready to start?
-                            </h2>
+                                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-                            <p className="mt-2 text-sm text-gray-400">
-                                Start the tournament to generate
-                                the bracket and first-round matches
-                                from the approved players.
-                            </p>
-                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-bold">
+                                                Ready to start?
+                                            </h2>
 
-                        <button
-                            onClick={
-                                handleStartTournament
-                            }
-                            disabled={
-                                startingTournament
-                            }
-                            className="rounded-xl bg-[#7C3AED] px-6 py-3 font-semibold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            {startingTournament
-                                ? 'Starting...'
-                                : 'Start Tournament'}
-                        </button>
+                                            <p className="mt-2 text-sm text-gray-400">
+                                                Start the
+                                                tournament to
+                                                generate the
+                                                bracket and
+                                                first-round
+                                                matches from
+                                                the approved
+                                                players.
+                                            </p>
+                                        </div>
 
-                    </div>
+                                        <button
+                                            onClick={
+                                                handleStartTournament
+                                            }
+                                            disabled={
+                                                startingTournament
+                                            }
+                                            className="rounded-xl bg-[#7C3AED] px-6 py-3 font-semibold text-white transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {startingTournament
+                                                ? 'Starting...'
+                                                : 'Start Tournament'}
+                                        </button>
 
-                </div>
-            )}
+                                    </div>
+
+                                </div>
+                            )}
+
                         {/* Description */}
                         <div className="lg:col-span-2">
 
@@ -846,8 +1084,9 @@ function TournamentDetails() {
                                 </h2>
 
                                 <p className="mt-2 text-sm text-gray-400">
-                                    Join this tournament and compete
-                                    against other players.
+                                    Join this tournament and
+                                    compete against other
+                                    players.
                                 </p>
 
                                 <div className="mt-6">
@@ -1062,6 +1301,7 @@ function TournamentDetails() {
                                                                                     : 'bg-white/5'
                                                                             }`}
                                                                         >
+
                                                                             <span
                                                                                 className={`font-medium ${
                                                                                     player1Won
@@ -1078,6 +1318,7 @@ function TournamentDetails() {
                                                                                     ? result.score_player1
                                                                                     : '-'}
                                                                             </span>
+
                                                                         </div>
 
                                                                         <div className="my-2 text-center text-xs text-gray-600">
@@ -1092,6 +1333,7 @@ function TournamentDetails() {
                                                                                     : 'bg-white/5'
                                                                             }`}
                                                                         >
+
                                                                             <span
                                                                                 className={`font-medium ${
                                                                                     player2Won
@@ -1108,6 +1350,7 @@ function TournamentDetails() {
                                                                                     ? result.score_player2
                                                                                     : '-'}
                                                                             </span>
+
                                                                         </div>
 
                                                                     </div>
@@ -1123,6 +1366,7 @@ function TournamentDetails() {
                                     )}
 
                                 </div>
+
                             </div>
                         )}
 
@@ -1142,14 +1386,20 @@ function TournamentDetails() {
                             </h2>
 
                             <p className="mt-2 text-sm text-gray-400">
-                                View all matches and manage match
-                                results.
+                                View all matches and manage
+                                match schedules and results.
                             </p>
                         </div>
 
                         {message && (
-                            <div className="mb-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-gray-300">
+                            <div className="mb-6 rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-sm text-green-400">
                                 {message}
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-400">
+                                {error}
                             </div>
                         )}
 
@@ -1160,253 +1410,360 @@ function TournamentDetails() {
                         ) : (
                             <div className="space-y-5">
 
-                                {matches.map((match) => {
-                                    const result =
-                                        match.result;
+                                {matches.map(
+                                    (match) => {
+                                        const result =
+                                            match.result;
 
-                                    const player1Won =
-                                        result &&
-                                        Number(
-                                            result.winner_id
-                                        ) ===
-                                        Number(
-                                            match.first_player_id
-                                        );
+                                        const player1Won =
+                                            result &&
+                                            Number(
+                                                result.winner_id
+                                            ) ===
+                                            Number(
+                                                match.first_player_id
+                                            );
 
-                                    const player2Won =
-                                        result &&
-                                        Number(
-                                            result.winner_id
-                                        ) ===
-                                        Number(
-                                            match.second_player_id
-                                        );
+                                        const player2Won =
+                                            result &&
+                                            Number(
+                                                result.winner_id
+                                            ) ===
+                                            Number(
+                                                match.second_player_id
+                                            );
 
-                                    const canEnterResult =
-                                        isOrganizer &&
-                                        !result &&
-                                        match.status !==
-                                        'cancelled' &&
-                                        match.first_player_id &&
-                                        match.second_player_id;
+                                        const canEnterResult =
+                                            isOrganizer &&
+                                            !result &&
+                                            match.status !==
+                                            'cancelled' &&
+                                            match.first_player_id &&
+                                            match.second_player_id;
 
-                                    return (
-                                        <div
-                                            key={match.id}
-                                            className="rounded-xl border border-white/10 bg-[#0B0F19] p-5"
-                                        >
+                                        const currentSchedule =
+                                            scheduleValues[
+                                                match.id
+                                                ] ??
+                                            formatDateTimeLocal(
+                                                match.scheduled_at
+                                            );
 
-                                            {/* Match header */}
-                                            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        return (
+                                            <div
+                                                key={
+                                                    match.id
+                                                }
+                                                className="rounded-xl border border-white/10 bg-[#0B0F19] p-5"
+                                            >
 
-                                                <div>
-                                                    <p className="text-lg font-semibold">
-                                                        {match.round}
-                                                    </p>
+                                                {/* Match header */}
+                                                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-                                                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                                                        <CalendarDays
-                                                            size={15}
-                                                        />
+                                                    <div>
 
-                                                        <span>
-                                                            {formatDate(
-                                                                match.scheduled_at
-                                                            )}
-                                                        </span>
-
-                                                        {match.scheduled_at && (
-                                                            <>
-                                                                <span>
-                                                                    ·
-                                                                </span>
-
-                                                                <Clock
-                                                                    size={15}
-                                                                />
-
-                                                                <span>
-                                                                    {formatTime(
-                                                                        match.scheduled_at
-                                                                    )}
-                                                                </span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <span
-                                                    className={`w-fit rounded-full px-3 py-1 text-xs ${
-                                                        match.status ===
-                                                        'finished'
-                                                            ? 'bg-green-500/10 text-green-400'
-                                                            : match.status ===
-                                                            'cancelled'
-                                                                ? 'bg-red-500/10 text-red-400'
-                                                                : 'bg-white/5 text-gray-400'
-                                                    }`}
-                                                >
-                                                    {formatStatus(
-                                                        match.status
-                                                    )}
-                                                </span>
-
-                                            </div>
-
-                                            {/* Players */}
-                                            <div className="grid items-center gap-4 md:grid-cols-3">
-
-                                                {/* Player 1 */}
-                                                <div
-                                                    className={`rounded-xl border p-4 ${
-                                                        player1Won
-                                                            ? 'border-purple-500/40 bg-purple-600/10'
-                                                            : 'border-white/10 bg-white/5'
-                                                    }`}
-                                                >
-
-                                                    <div className="flex items-center justify-between gap-4">
-
-                                                        <span className="font-medium">
-                                                            {match.first_player?.name ||
-                                                                'TBD'}
-                                                        </span>
-
-                                                        <span
-                                                            className={`text-2xl font-bold ${
-                                                                player1Won
-                                                                    ? 'text-purple-300'
-                                                                    : 'text-white'
-                                                            }`}
-                                                        >
-                                                            {result
-                                                                ? result.score_player1
-                                                                : '-'}
-                                                        </span>
-
-                                                    </div>
-
-                                                    {player1Won && (
-                                                        <p className="mt-2 text-xs text-purple-300">
-                                                            Winner
+                                                        <p className="text-lg font-semibold">
+                                                            {match.round}
                                                         </p>
-                                                    )}
 
-                                                </div>
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
 
-                                                {/* VS */}
-                                                <div className="text-center">
+                                                            <CalendarDays
+                                                                size={
+                                                                    15
+                                                                }
+                                                            />
 
-                                                    <span className="text-sm font-semibold text-gray-600">
-                                                        VS
+                                                            <span>
+                                                                {match.scheduled_at
+                                                                    ? formatDate(
+                                                                        match.scheduled_at
+                                                                    )
+                                                                    : 'Schedule not set'}
+                                                            </span>
+
+                                                            {match.scheduled_at && (
+                                                                <>
+                                                                    <span>
+                                                                        ·
+                                                                    </span>
+
+                                                                    <Clock
+                                                                        size={
+                                                                            15
+                                                                        }
+                                                                    />
+
+                                                                    <span>
+                                                                        {formatTime(
+                                                                            match.scheduled_at
+                                                                        )}
+                                                                    </span>
+                                                                </>
+                                                            )}
+
+                                                        </div>
+
+                                                    </div>
+
+                                                    <span
+                                                        className={`w-fit rounded-full px-3 py-1 text-xs ${
+                                                            match.status ===
+                                                            'finished'
+                                                                ? 'bg-green-500/10 text-green-400'
+                                                                : match.status ===
+                                                                'cancelled'
+                                                                    ? 'bg-red-500/10 text-red-400'
+                                                                    : 'bg-white/5 text-gray-400'
+                                                        }`}
+                                                    >
+                                                        {formatStatus(
+                                                            match.status
+                                                        )}
                                                     </span>
 
                                                 </div>
 
-                                                {/* Player 2 */}
-                                                <div
-                                                    className={`rounded-xl border p-4 ${
-                                                        player2Won
-                                                            ? 'border-purple-500/40 bg-purple-600/10'
-                                                            : 'border-white/10 bg-white/5'
-                                                    }`}
-                                                >
+                                                {/* Players */}
+                                                <div className="grid items-center gap-4 md:grid-cols-3">
 
-                                                    <div className="flex items-center justify-between gap-4">
+                                                    {/* Player 1 */}
+                                                    <div
+                                                        className={`rounded-xl border p-4 ${
+                                                            player1Won
+                                                                ? 'border-purple-500/40 bg-purple-600/10'
+                                                                : 'border-white/10 bg-white/5'
+                                                        }`}
+                                                    >
 
-                                                        <span className="font-medium">
-                                                            {match.second_player?.name ||
-                                                                'TBD'}
-                                                        </span>
+                                                        <div className="flex items-center justify-between gap-4">
 
-                                                        <span
-                                                            className={`text-2xl font-bold ${
-                                                                player2Won
-                                                                    ? 'text-purple-300'
-                                                                    : 'text-white'
-                                                            }`}
-                                                        >
-                                                            {result
-                                                                ? result.score_player2
-                                                                : '-'}
+                                                            <span className="font-medium">
+                                                                {match
+                                                                        .first_player
+                                                                        ?.name ||
+                                                                    'TBD'}
+                                                            </span>
+
+                                                            <span
+                                                                className={`text-2xl font-bold ${
+                                                                    player1Won
+                                                                        ? 'text-purple-300'
+                                                                        : 'text-white'
+                                                                }`}
+                                                            >
+                                                                {result
+                                                                    ? result.score_player1
+                                                                    : '-'}
+                                                            </span>
+
+                                                        </div>
+
+                                                        {player1Won && (
+                                                            <p className="mt-2 text-xs text-purple-300">
+                                                                Winner
+                                                            </p>
+                                                        )}
+
+                                                    </div>
+
+                                                    {/* VS */}
+                                                    <div className="text-center">
+
+                                                        <span className="text-sm font-semibold text-gray-600">
+                                                            VS
                                                         </span>
 
                                                     </div>
 
-                                                    {player2Won && (
-                                                        <p className="mt-2 text-xs text-purple-300">
-                                                            Winner
-                                                        </p>
+                                                    {/* Player 2 */}
+                                                    <div
+                                                        className={`rounded-xl border p-4 ${
+                                                            player2Won
+                                                                ? 'border-purple-500/40 bg-purple-600/10'
+                                                                : 'border-white/10 bg-white/5'
+                                                        }`}
+                                                    >
+
+                                                        <div className="flex items-center justify-between gap-4">
+
+                                                            <span className="font-medium">
+                                                                {match
+                                                                        .second_player
+                                                                        ?.name ||
+                                                                    'TBD'}
+                                                            </span>
+
+                                                            <span
+                                                                className={`text-2xl font-bold ${
+                                                                    player2Won
+                                                                        ? 'text-purple-300'
+                                                                        : 'text-white'
+                                                                }`}
+                                                            >
+                                                                {result
+                                                                    ? result.score_player2
+                                                                    : '-'}
+                                                            </span>
+
+                                                        </div>
+
+                                                        {player2Won && (
+                                                            <p className="mt-2 text-xs text-purple-300">
+                                                                Winner
+                                                            </p>
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+
+                                                {/* Organizer schedule action */}
+                                                {isOrganizer &&
+                                                    match.status ===
+                                                    'scheduled' &&
+                                                    match.first_player_id &&
+                                                    match.second_player_id && (
+                                                        <div className="mt-5 border-t border-white/10 pt-5">
+
+                                                            <div className="mb-3 flex items-center gap-2 text-sm text-gray-400">
+
+                                                                <CalendarDays
+                                                                    size={
+                                                                        16
+                                                                    }
+                                                                />
+
+                                                                <span>
+                                                                    {match.scheduled_at
+                                                                        ? 'Update match schedule'
+                                                                        : 'Set match schedule'}
+                                                                </span>
+
+                                                            </div>
+
+                                                            <div className="flex flex-col gap-3 sm:flex-row">
+
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    value={
+                                                                        currentSchedule
+                                                                    }
+                                                                    onChange={(
+                                                                        event
+                                                                    ) =>
+                                                                        handleScheduleChange(
+                                                                            match.id,
+                                                                            event
+                                                                                .target
+                                                                                .value
+                                                                        )
+                                                                    }
+                                                                    className="w-full rounded-xl border border-white/10 bg-[#111827] px-4 py-3 text-sm text-white outline-none transition focus:border-purple-500 sm:flex-1"
+                                                                />
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleSaveSchedule(
+                                                                            match.id
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        savingSchedule ===
+                                                                        match.id
+                                                                    }
+                                                                    className="rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                >
+                                                                    {savingSchedule ===
+                                                                    match.id
+                                                                        ? 'Saving...'
+                                                                        : match.scheduled_at
+                                                                            ? 'Update schedule'
+                                                                            : 'Set schedule'}
+                                                                </button>
+
+                                                            </div>
+
+                                                        </div>
                                                     )}
 
-                                                </div>
+                                                {/* Organizer result action */}
+                                                {canEnterResult && (
+                                                    <div className="mt-5 border-t border-white/10 pt-5">
+
+                                                        <div className="mb-3 flex items-center gap-2 text-sm text-gray-400">
+
+                                                            <CircleAlert
+                                                                size={
+                                                                    16
+                                                                }
+                                                            />
+
+                                                            <span>
+                                                                You are the
+                                                                tournament
+                                                                organizer.
+                                                                Enter the final
+                                                                score for this
+                                                                match.
+                                                            </span>
+
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openScoreModal(
+                                                                    match
+                                                                )
+                                                            }
+                                                            className="w-full rounded-xl bg-purple-600 px-5 py-3 font-semibold transition hover:bg-purple-500"
+                                                        >
+                                                            Enter match result
+                                                        </button>
+
+                                                    </div>
+                                                )}
 
                                             </div>
-
-                                            {/* Organizer result action */}
-                                            {canEnterResult && (
-                                                <div className="mt-5 border-t border-white/10 pt-5">
-
-                                                    <div className="mb-3 flex items-center gap-2 text-sm text-gray-400">
-                                                        <CircleAlert
-                                                            size={16}
-                                                        />
-
-                                                        <span>
-                                                            You are the
-                                                            tournament
-                                                            organizer.
-                                                            Enter the final
-                                                            score for this
-                                                            match.
-                                                        </span>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={() =>
-                                                            openScoreModal(
-                                                                match
-                                                            )
-                                                        }
-                                                        className="w-full rounded-xl bg-purple-600 px-5 py-3 font-semibold transition hover:bg-purple-500"
-                                                    >
-                                                        Enter match result
-                                                    </button>
-
-                                                </div>
-                                            )}
-
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    }
+                                )}
 
                             </div>
                         )}
 
                     </section>
                 )}
+
                 {/* ===================================== */}
                 {/* REGISTRATIONS */}
                 {/* ===================================== */}
+
                 {isOrganizer && (
                     <section className="mt-8 lg:col-span-3">
+
                         <div className="rounded-2xl border border-white/10 bg-[#111827] p-6">
 
                             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
                                 <div>
                                     <h2 className="text-2xl font-bold">
                                         Registration Requests
                                     </h2>
 
                                     <p className="mt-2 text-sm text-gray-400">
-                                        Manage players who want to join your
-                                        tournament.
+                                        Manage players who want to join
+                                        your tournament.
                                     </p>
                                 </div>
 
                                 <span className="w-fit rounded-full bg-white/5 px-3 py-1 text-sm text-gray-400">
-                    {registrations.length} registrations
-                </span>
+                                    {registrations.length}{' '}
+                                    registrations
+                                </span>
+
                             </div>
 
                             {loadingRegistrations ? (
@@ -1420,107 +1777,124 @@ function TournamentDetails() {
                             ) : (
                                 <div className="space-y-4">
 
-                                    {registrations.map((registration) => {
-                                        const isUpdating =
-                                            Number(updatingRegistration) ===
-                                            Number(registration.id);
+                                    {registrations.map(
+                                        (registration) => {
+                                            const isUpdating =
+                                                Number(
+                                                    updatingRegistration
+                                                ) ===
+                                                Number(
+                                                    registration.id
+                                                );
 
-                                        return (
-                                            <div
-                                                key={registration.id}
-                                                className="flex flex-col gap-5 rounded-xl border border-white/10 bg-[#0B0F19] p-5 md:flex-row md:items-center md:justify-between"
-                                            >
+                                            return (
+                                                <div
+                                                    key={
+                                                        registration.id
+                                                    }
+                                                    className="flex flex-col gap-5 rounded-xl border border-white/10 bg-[#0B0F19] p-5 md:flex-row md:items-center md:justify-between"
+                                                >
 
-                                                {/* Player information */}
-                                                <div>
-                                                    <h3 className="font-semibold">
-                                                        {registration.user?.name ||
-                                                            'Unknown player'}
-                                                    </h3>
+                                                    {/* Player information */}
+                                                    <div>
 
-                                                    <p className="mt-1 text-sm text-gray-500">
-                                                        {registration.user?.email ||
-                                                            'No email available'}
-                                                    </p>
+                                                        <h3 className="font-semibold">
+                                                            {registration
+                                                                    .user
+                                                                    ?.name ||
+                                                                'Unknown player'}
+                                                        </h3>
 
-                                                    <p className="mt-2 text-xs text-gray-600">
-                                                        Registered on{' '}
-                                                        {formatDate(
-                                                            registration.registration_date
-                                                        )}
-                                                    </p>
+                                                        <p className="mt-1 text-sm text-gray-500">
+                                                            {registration
+                                                                    .user
+                                                                    ?.email ||
+                                                                'No email available'}
+                                                        </p>
+
+                                                        <p className="mt-2 text-xs text-gray-600">
+                                                            Registered on{' '}
+                                                            {formatDate(
+                                                                registration.registration_date
+                                                            )}
+                                                        </p>
+
+                                                    </div>
+
+                                                    {/* Status and actions */}
+                                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
+                                                        <span
+                                                            className={`w-fit rounded-full px-3 py-1 text-xs ${
+                                                                registration.status ===
+                                                                'approved'
+                                                                    ? 'bg-green-500/10 text-green-400'
+                                                                    : registration.status ===
+                                                                    'rejected'
+                                                                        ? 'bg-red-500/10 text-red-400'
+                                                                        : registration.status ===
+                                                                        'cancelled'
+                                                                            ? 'bg-gray-500/10 text-gray-400'
+                                                                            : 'bg-yellow-500/10 text-yellow-400'
+                                                            }`}
+                                                        >
+                                                            {formatStatus(
+                                                                registration.status
+                                                            )}
+                                                        </span>
+
+                                                        {registration.status ===
+                                                            'pending' && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            handleRegistrationStatus(
+                                                                                registration.id,
+                                                                                'approved'
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            isUpdating
+                                                                        }
+                                                                        className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    >
+                                                                        {isUpdating
+                                                                            ? 'Updating...'
+                                                                            : 'Approve'}
+                                                                    </button>
+
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            handleRegistrationStatus(
+                                                                                registration.id,
+                                                                                'rejected'
+                                                                            )
+                                                                        }
+                                                                        disabled={
+                                                                            isUpdating
+                                                                        }
+                                                                        className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                </>
+                                                            )}
+
+                                                    </div>
+
                                                 </div>
-
-                                                {/* Status and actions */}
-                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-
-                                    <span
-                                        className={`w-fit rounded-full px-3 py-1 text-xs ${
-                                            registration.status ===
-                                            'approved'
-                                                ? 'bg-green-500/10 text-green-400'
-                                                : registration.status ===
-                                                'rejected'
-                                                    ? 'bg-red-500/10 text-red-400'
-                                                    : registration.status ===
-                                                    'cancelled'
-                                                        ? 'bg-gray-500/10 text-gray-400'
-                                                        : 'bg-yellow-500/10 text-yellow-400'
-                                        }`}
-                                    >
-                                        {formatStatus(
-                                            registration.status
-                                        )}
-                                    </span>
-
-                                                    {registration.status ===
-                                                        'pending' && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleRegistrationStatus(
-                                                                            registration.id,
-                                                                            'approved'
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        isUpdating
-                                                                    }
-                                                                    className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                                                >
-                                                                    {isUpdating
-                                                                        ? 'Updating...'
-                                                                        : 'Approve'}
-                                                                </button>
-
-                                                                <button
-                                                                    onClick={() =>
-                                                                        handleRegistrationStatus(
-                                                                            registration.id,
-                                                                            'rejected'
-                                                                        )
-                                                                    }
-                                                                    disabled={
-                                                                        isUpdating
-                                                                    }
-                                                                    className="rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                                                                >
-                                                                    Reject
-                                                                </button>
-                                                            </>
-                                                        )}
-
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        }
+                                    )}
 
                                 </div>
                             )}
 
                         </div>
+
                     </section>
                 )}
+
             </main>
 
             {/* ===================================== */}
@@ -1539,10 +1913,14 @@ function TournamentDetails() {
                             </h2>
 
                             <p className="mt-2 text-sm text-gray-400">
-                                {scoreMatch.first_player?.name ||
+                                {scoreMatch
+                                        .first_player
+                                        ?.name ||
                                     'Player 1'}{' '}
                                 vs{' '}
-                                {scoreMatch.second_player?.name ||
+                                {scoreMatch
+                                        .second_player
+                                        ?.name ||
                                     'Player 2'}
                             </p>
 
@@ -1561,7 +1939,9 @@ function TournamentDetails() {
                                 <div>
 
                                     <label className="mb-2 block text-sm text-gray-400">
-                                        {scoreMatch.first_player?.name ||
+                                        {scoreMatch
+                                                .first_player
+                                                ?.name ||
                                             'Player 1'}
                                     </label>
 
@@ -1572,9 +1952,13 @@ function TournamentDetails() {
                                         value={
                                             scoreForm.score_player1
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             setScoreForm(
-                                                (previous) => ({
+                                                (
+                                                    previous
+                                                ) => ({
                                                     ...previous,
                                                     score_player1:
                                                     event
@@ -1592,7 +1976,9 @@ function TournamentDetails() {
                                 <div>
 
                                     <label className="mb-2 block text-sm text-gray-400">
-                                        {scoreMatch.second_player?.name ||
+                                        {scoreMatch
+                                                .second_player
+                                                ?.name ||
                                             'Player 2'}
                                     </label>
 
@@ -1603,9 +1989,13 @@ function TournamentDetails() {
                                         value={
                                             scoreForm.score_player2
                                         }
-                                        onChange={(event) =>
+                                        onChange={(
+                                            event
+                                        ) =>
                                             setScoreForm(
-                                                (previous) => ({
+                                                (
+                                                    previous
+                                                ) => ({
                                                     ...previous,
                                                     score_player2:
                                                     event

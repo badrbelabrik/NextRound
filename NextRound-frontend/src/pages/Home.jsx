@@ -11,12 +11,14 @@ import Navbar from '../components/Navbar';
 import TournamentCard from '../components/TournamentCard';
 import PlayerCard from '../components/PlayerCard';
 import api from '../services/api';
+import {useNavigate} from "react-router-dom";
 
 
 function Home() {
     const [tournaments, setTournaments] = useState([]);
     const [players, setPlayers] = useState([]);
     const [games, setGames] = useState([])
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadHomeData = async () => {
@@ -168,12 +170,18 @@ function Home() {
 
                         <div className="mt-8 flex flex-wrap gap-4">
 
-                            <button className="flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
+                            <button onClick={() => navigate(`/tournaments`)}
+                                    className="flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
                                 <Trophy size={18} />
                                 Explore Tournaments
                             </button>
 
-                            <button className="rounded-lg border border-[#7C3AED] px-6 py-3.5 font-semibold text-white transition hover:bg-[#7C3AED]/10">
+                            <button     onClick={() =>
+                                navigate('/userdashboard', {
+                                    state: { activeTab: 'tournaments' },
+                                })
+                            }
+                                className="rounded-lg border border-[#7C3AED] px-6 py-3.5 font-semibold text-white transition hover:bg-[#7C3AED]/10">
                                 Create Tournament
                             </button>
 
@@ -258,7 +266,8 @@ function Home() {
                             </p>
                         </div>
 
-                        <button className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex">
+                        <button onClick={() => navigate("/tournaments")}
+                            className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex cursor-pointer">
                             View all tournaments
                             <ArrowRight size={16} />
                         </button>
@@ -298,7 +307,8 @@ function Home() {
                             </p>
                         </div>
 
-                        <button className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex">
+                        <button onClick={() => navigate("/rankings")}
+                            className="hidden items-center gap-2 text-sm font-semibold text-[#A78BFA] md:flex cursor-pointer">
                             View full rankings
                             <ArrowRight size={16} />
                         </button>
@@ -337,7 +347,12 @@ function Home() {
                             Bring your community together and organize epic competitions.
                         </p>
 
-                        <button className="mt-7 flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
+                        <button     onClick={() =>
+                            navigate('/userdashboard', {
+                                state: { activeTab: 'tournaments' },
+                            })
+                        }
+                            className="mt-7 flex items-center gap-2 rounded-lg bg-[#7C3AED] px-6 py-3.5 font-semibold transition hover:bg-[#6D28D9]">
                             <Trophy size={18} />
                             Create Tournament
                         </button>

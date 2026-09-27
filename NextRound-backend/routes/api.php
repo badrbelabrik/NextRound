@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/matches', [TournamentMatchController::class, 'store']);
     Route::put('/matches/{match}', [TournamentMatchController::class, 'update']);
     Route::delete('/matches/{match}', [TournamentMatchController::class, 'destroy']);
+    Route::put('/matches/{match}/schedule', [TournamentMatchController::class, 'updateSchedule']);
     //MATCH-RESULTS
     Route::get('/my-results', [ResultController::class, 'myResults']);
     Route::get('/results/{result}', [ResultController::class, 'show']);
