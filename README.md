@@ -527,10 +527,12 @@ results
 rankings
 notifications
 ```
-
-## 📐 Class Diagram
-
 ## 📐 Use case diagram
+![use-case-diagram.png](uml/use-case-diagram.png)
+## 📐 Class Diagram
+![class-diagram.png](uml/class-diagram.png)
+## 📐 ER Diagram
+![er-diagram.png](uml/er-diagram.png)
 
 The main public pages are:
 

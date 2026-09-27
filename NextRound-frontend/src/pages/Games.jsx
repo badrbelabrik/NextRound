@@ -3,6 +3,7 @@ import { Gamepad2 } from 'lucide-react';
 
 import Navbar from '../components/Navbar';
 import api from '../services/api';
+import imageHelper from "../services/imageHelper.js";
 
 function Games() {
     const [games, setGames] = useState([]);
@@ -108,7 +109,7 @@ function Games() {
 
                                         {game.image ? (
                                             <img
-                                                src={game.image}
+                                                src={imageHelper(game.image)}
                                                 alt={game.name}
                                                 className="h-full w-full object-cover transition duration-300 hover:scale-105"
                                             />
